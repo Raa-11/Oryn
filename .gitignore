@@ -1,0 +1,41 @@
+
+# Bazel output links
+/bazel-*
+
+# CLion local configuration
+/.idea/
+/.clwb/
+
+# Local build artifacts
+*.exe
+*.obj
+*.pdb
+*.dll
+*.lib
+*.exp
+*.ilk
+*.ifc
+*.pch
+
+/.tmp-ui/
+
+# Local environment and credentials (keep shareable examples)
+.env
+.env.*
+!.env.example
+!.env.*.example
+/.bazelrc.local
+
+# Runtime data and logs
+*.log
+*.sqlite
+*.sqlite3
+*.sqlite-wal
+*.sqlite-shm
+*.sqlite3-wal
+*.sqlite3-shm
+
+# OS metadata
+Thumbs.db
+Desktop.ini
+.DS_Store

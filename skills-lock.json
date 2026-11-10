@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "skills": {
+    "bazel-build-optimization": {
+      "source": "wshobson/agents",
+      "sourceType": "github",
+      "skillPath": "plugins/developer-essentials/skills/bazel-build-optimization/SKILL.md",
+      "computedHash": "9e36c4f7e2f5ad149196c21bb63cb5ab391422612939583ea77d67bdb4f40c63"
+    },
+    "cpp-coding-standards": {
+      "source": "affaan-m/ecc",
+      "sourceType": "github",
+      "skillPath": "skills/cpp-coding-standards/SKILL.md",
+      "computedHash": "e8c59d13fe23b088e24dcf6b77845823c5b5636b5c52434550f9b1837bc44ac3"
+    },
+    "modern-cpp": {
+      "source": "trailofbits/skills",
+      "sourceType": "github",
+      "skillPath": "plugins/modern-cpp/skills/modern-cpp/SKILL.md",
+      "computedHash": "da28debe7451b6b24de69a3b43b43da61900d21ace3fc7dcb120b3710e1a4611"
+    },
+    "slint": {
+      "source": "slint-ui/ai-plugins",
+      "sourceType": "github",
+      "skillPath": "skills/slint/SKILL.md",
+      "computedHash": "0bbd0fb87e0633c5fe5593064bc225f349ae8977e6cfe46cb0e4222f4df23751"
+    }
+  }
+}

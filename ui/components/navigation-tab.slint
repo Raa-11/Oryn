@@ -1,0 +1,66 @@
+import { Metrics } from "../themes/metrics.slint";
+import { Theme } from "../themes/theme.slint";
+
+export component NavigationTab inherits Rectangle {
+    in property <image> icon;
+    in property <string> label;
+    in property <bool> selected;
+    in property <bool> reduce-motion;
+
+    callback activated();
+
+    private property <float> emphasis: selected ? 1 : 0;
+
+    width: (38.666667px + 41.333333px * emphasis) * Metrics.scale;
+    height: 25px * Metrics.scale;
+    horizontal-stretch: 0;
+    clip: true;
+    border-radius: 13px * Metrics.scale;
+    background: !selected && touch.has-hover ? Theme.control-hover : transparent;
+    border-width: focus.has-focus ? 1px * Metrics.scale : 0px;
+    border-color: Theme.accent;
+
+    accessible-role: button;
+    accessible-label: label;
+    accessible-action-default => { root.activated(); }
+
+    animate emphasis {
+        duration: root.reduce-motion ? 0ms : 240ms;
+        easing: cubic-bezier(0.2, 0.8, 0.2, 1);
+    }
+
+    animate background { duration: root.reduce-motion ? 0ms : 120ms; }
+
+    icon-view := Image {
+        source: root.icon;
+        colorize: Theme.foreground;
+        width: 12px * Metrics.scale;
+        height: 12px * Metrics.scale;
+        x: (root.width - self.width - root.emphasis * (5px * Metrics.scale + label-text.preferred-width)) / 2;
+        y: (parent.height - self.height) / 2;
+    }
+
+    label-text := Text {
+        text: root.label;
+        x: icon-view.x + 17px * Metrics.scale;
+        height: parent.height;
+        font-size: Theme.font-body;
+        color: Theme.foreground;
+        vertical-alignment: center;
+        opacity: root.emphasis;
+    }
+
+    focus := FocusScope {
+        key-pressed(event) => {
+            if event.text == " " || event.text == "\n" {
+                root.activated();
+                return accept;
+            }
+            return reject;
+        }
+    }
+
+    touch := TouchArea {
+        clicked => { root.activated(); }
+    }
+}

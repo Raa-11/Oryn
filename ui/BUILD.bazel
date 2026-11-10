@@ -1,0 +1,47 @@
+load("@rules_cc//cc:cc_library.bzl", "cc_library")
+load("@rules_cc//cc:cc_test.bzl", "cc_test")
+
+genrule(
+    name = "compile_ui",
+    srcs = glob(["**/*.slint", "assets/*.svg", "assets/*.png", "assets/*.ttf"]),
+    outs = ["main.h"],
+    cmd = '"$(execpath @slint//:bin/slint-compiler.exe)" --embed-resources embed-files --format cpp "$(location main.slint)" -o "$@"',
+    tools = ["@slint//:bin/slint-compiler.exe"],
+)
+
+cc_library(
+    name = "main_ui",
+    hdrs = [":compile_ui"],
+    visibility = ["//src/app:__pkg__"],
+    deps = ["@slint"],
+)
+
+cc_test(
+    name = "time_smoke_test",
+    srcs = ["time_smoke_test.cpp"],
+    local_defines = ["DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN", "SLINT_FEATURE_EXPERIMENTAL"],
+    deps = [":testing_ui", "@doctest//doctest"],
+    size = "small",
+)
+
+cc_test(
+    name = "calendar_smoke_test",
+    srcs = ["calendar_smoke_test.cpp"],
+    local_defines = ["DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN", "SLINT_FEATURE_EXPERIMENTAL"],
+    deps = [":testing_ui", "@doctest//doctest"],
+    size = "small",
+)
+
+genrule(
+    name = "compile_test_ui",
+    srcs = glob(["**/*.slint", "assets/*.svg", "assets/*.png", "assets/*.ttf"]),
+    outs = ["testing/main.h"],
+    cmd = 'SLINT_EMIT_DEBUG_INFO=1 "$(execpath @slint//:bin/slint-compiler.exe)" --embed-resources embed-files --format cpp "$(location main.slint)" -o "$@"',
+    tools = ["@slint//:bin/slint-compiler.exe"],
+)
+
+cc_library(
+    name = "testing_ui",
+    hdrs = [":compile_test_ui"],
+    deps = ["@slint"],
+)

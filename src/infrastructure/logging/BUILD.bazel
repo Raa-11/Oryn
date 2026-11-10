@@ -1,0 +1,16 @@
+load("@rules_cc//cc:cc_library.bzl", "cc_library")
+
+cc_library(
+    name = "logging",
+    srcs = ["logging.cpp"],
+    features = ["cpp_modules"],
+    module_interfaces = ["logging.cppm"],
+    local_defines = select({
+        "//:windows_opt": ["NDEBUG"],
+        "//conditions:default": [],
+    }),
+    # CLion's Bazel aspect omits module_interfaces; expose them without compiling twice.
+    textual_hdrs = ["logging.cppm"],
+    deps = ["@quill//:quill"],
+    visibility = ["//src/app:__pkg__"],
+)

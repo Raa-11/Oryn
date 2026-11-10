@@ -1,0 +1,25 @@
+load("@rules_cc//cc:cc_library.bzl", "cc_library")
+load("@rules_cc//cc:cc_test.bzl", "cc_test")
+
+cc_library(
+    name = "calendar",
+    srcs = ["calendar_service.cpp"],
+    features = ["cpp_modules"],
+    module_interfaces = ["calendar_service.cppm"],
+    textual_hdrs = ["calendar_service.cppm"],
+    local_defines = select({
+        "//:windows_opt": ["NDEBUG"],
+        "//conditions:default": [],
+    }),
+    deps = ["//src/infrastructure/database:database", "@entt//:entt"],
+    visibility = ["//src/app:__pkg__"],
+)
+
+cc_test(
+    name = "calendar_test",
+    srcs = ["calendar_test.cpp"],
+    features = ["cpp_modules"],
+    local_defines = ["DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN"],
+    deps = [":calendar", "//src/infrastructure/database:database", "@doctest//doctest", "@sqlite3//:sqlite3"],
+    size = "small",
+)

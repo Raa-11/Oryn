@@ -1,0 +1,26 @@
+export enum TimerStatus { idle, running, paused, finished }
+
+export global TimeData {
+    in property <TimerStatus> status: TimerStatus.idle;
+    in property <bool> pomodoro;
+    in property <int> focus-minutes: 25;
+    in property <int> short-minutes: 5;
+    in property <int> long-minutes: 15;
+    in property <string> remaining: "15:00";
+    in property <string> phase: "Focus";
+    in property <string> title: "Countdown";
+    in property <string> status-text: "Ready";
+    in property <int> session: 1;
+    in property <float> progress;
+    in property <string> error;
+    in property <bool> completed;
+}
+
+export global TimeActions {
+    callback start-duration(int, int);
+    callback toggle();
+    callback reset();
+    callback cancel();
+    callback select-mode(bool);
+    callback configure(int, int, int);
+}

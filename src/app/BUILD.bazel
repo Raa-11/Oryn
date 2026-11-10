@@ -1,0 +1,35 @@
+load("@rules_cc//cc:cc_binary.bzl", "cc_binary")
+load("@rules_cc//cc:cc_library.bzl", "cc_library")
+
+cc_library(
+    name = "application",
+    srcs = ["application.cpp"],
+    features = ["cpp_modules"],
+    module_interfaces = ["application.cppm"],
+    local_defines = select({
+        "//:windows_opt": ["NDEBUG"],
+        "//conditions:default": [],
+    }),
+    # CLion's Bazel aspect omits module_interfaces; expose them without compiling twice.
+    textual_hdrs = ["application.cppm"],
+    deps = [
+        "//src/features/time",
+        "//ui:main_ui",
+        "//src/platform:window",
+        "//src/features/settings:settings",
+        "//src/features/calendar:calendar",
+        "//src/infrastructure/logging:logging",
+        "//src/platform:paths",
+    ],
+)
+
+cc_binary(
+    name = "oryn",
+    srcs = ["main.cpp"],
+    features = ["cpp_modules"],
+    visibility = ["//visibility:public"],
+    deps = [
+        ":application",
+    ],
+)
+

@@ -1,0 +1,180 @@
+import { ScrollView } from "std-widgets.slint";
+import { Metrics } from "../themes/metrics.slint";
+import { Theme } from "../themes/theme.slint";
+
+export component CalendarInput inherits Rectangle {
+    in property <string> label;
+    in property <bool> enabled: true;
+    in property <bool> multiline: false;
+    in-out property <string> value;
+    in property <string> placeholder;
+    width: 200px * Metrics.scale;
+    horizontal-stretch: 0;
+    height: (root.multiline ? 52px : 26px) * Metrics.scale;
+    border-radius: 6px * Metrics.scale;
+    background: Theme.control;
+    border-width: 1px * Metrics.scale;
+    border-color: input.has-focus ? Theme.input-focus : Theme.control-border;
+    forward-focus: input;
+
+    viewport := ScrollView {
+        x: 7px * Metrics.scale;
+        y: root.multiline ? 5px * Metrics.scale : 0px;
+        width: parent.width - 14px * Metrics.scale;
+        height: parent.height - (root.multiline ? 10px : 0px) * Metrics.scale;
+        horizontal-scrollbar-policy: always-off;
+        vertical-scrollbar-policy: root.multiline ? as-needed : always-off;
+        content-width: root.multiline ? self.visible-width : max(self.visible-width, input.preferred-width + input.text-cursor-width);
+        content-height: root.multiline ? max(self.visible-height, input.preferred-height) : self.visible-height;
+        if root.value == "": Text {
+            x: 0px;
+            y: 0px;
+            width: parent.width;
+            height: parent.height;
+            text: root.placeholder;
+            color: Theme.muted;
+            font-size: 10px * Metrics.scale;
+            vertical-alignment: center;
+            accessible-role: none;
+        }
+        input := TextInput {
+            width: viewport.content-width;
+            height: viewport.content-height;
+            text <=> root.value;
+            enabled: root.enabled;
+            read-only: !root.enabled;
+            single-line: !root.multiline;
+            wrap: root.multiline ? word-wrap : no-wrap;
+            font-family: Theme.font-family;
+            font-size: 10px * Metrics.scale;
+            color: Theme.foreground;
+            horizontal-alignment: left;
+            vertical-alignment: root.multiline ? top : center;
+            selection-background-color: Theme.accent;
+            selection-foreground-color: Theme.on-accent;
+            accessible-label: root.label;
+            cursor-position-changed(position) => {
+                if root.multiline {
+                    if position.y + viewport.content-y < 0px {
+                        viewport.content-y = -position.y;
+                    } else if position.y + viewport.content-y > viewport.visible-height - self.font-size * 1.4 {
+                        viewport.content-y = viewport.visible-height - position.y - self.font-size * 1.4;
+                    }
+                } else {
+                    if position.x + viewport.content-x < 0px {
+                        viewport.content-x = -position.x;
+                    } else if position.x + viewport.content-x > viewport.visible-width - self.text-cursor-width {
+                        viewport.content-x = viewport.visible-width - position.x - self.text-cursor-width;
+                    }
+                }
+            }
+        }
+    }
+}
+
+export component CalendarCheck inherits Rectangle {
+    in property <string> label;
+    in property <bool> checked: false;
+    in property <bool> enabled: true;
+    callback activated();
+    width: 24px * Metrics.scale;
+    height: 26px * Metrics.scale;
+    horizontal-stretch: 0;
+    forward-focus: focus;
+    accessible-role: checkbox;
+    accessible-label: root.label;
+    accessible-checkable: true;
+    accessible-checked: root.checked;
+    accessible-enabled: root.enabled;
+    accessible-action-default => { if root.enabled { root.activated(); } }
+    Rectangle {
+        width: 13px * Metrics.scale;
+        height: 13px * Metrics.scale;
+        border-radius: 3px * Metrics.scale;
+        border-width: 1px * Metrics.scale;
+        border-color: focus.has-focus ? Theme.input-focus : Theme.muted;
+        background: root.checked ? Theme.accent : pointer.has-hover && root.enabled ? Theme.control-hover : transparent;
+        opacity: root.enabled ? 1 : 0.45;
+        if root.checked: Image {
+            source: @image-url("../assets/calendar-check.svg");
+            colorize: Theme.on-accent;
+            width: 11px * Metrics.scale;
+            height: 11px * Metrics.scale;
+        }
+    }
+
+    focus := FocusScope {
+        enabled: root.enabled;
+        key-pressed(event) => {
+            if root.enabled && (event.text == " " || event.text == "\n" || event.text == Key.Return) {
+                root.activated();
+                return accept;
+            }
+            return reject;
+        }
+    }
+
+    pointer := TouchArea {
+        enabled: root.enabled;
+        clicked => { focus.focus(); root.activated(); }
+    }
+}
+
+export component CalendarProperty inherits Rectangle {
+    in property <string> label;
+    in property <string> hint;
+    in property <image> icon;
+    in property <length> value-width: 200px * Metrics.scale;
+    height: 43px * Metrics.scale;
+    Rectangle {
+        y: 0px;
+        height: 1px * Metrics.scale;
+        background: Theme.separator;
+    }
+
+    HorizontalLayout {
+        spacing: 8px * Metrics.scale;
+        VerticalLayout {
+            width: 26px * Metrics.scale;
+            horizontal-stretch: 0;
+            alignment: center;
+            Rectangle {
+                width: 26px * Metrics.scale;
+                height: 26px * Metrics.scale;
+                border-radius: 7px * Metrics.scale;
+                background: Theme.control;
+                Image {
+                    source: root.icon;
+                    colorize: Theme.accent;
+                    width: 14px * Metrics.scale;
+                    height: 14px * Metrics.scale;
+                }
+            }
+        }
+
+        VerticalLayout {
+            horizontal-stretch: 1;
+            min-width: 0px;
+            spacing: 3px * Metrics.scale;
+            alignment: center;
+            Text {
+                text: root.label;
+                color: Theme.foreground;
+                font-size: Theme.font-detail;
+            }
+
+            if root.hint != "": Text {
+                text: root.hint;
+                color: Theme.muted;
+                font-size: Theme.font-caption;
+            }
+        }
+
+        VerticalLayout {
+            width: root.value-width;
+            horizontal-stretch: 0;
+            alignment: center;
+            @children
+        }
+    }
+}

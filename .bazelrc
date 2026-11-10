@@ -1,0 +1,27 @@
+# Keep the normal desktop build optimized; sanitizers remain opt-in.
+build --compilation_mode=opt
+build --enable_platform_specific_config
+build --experimental_cpp_modules
+build --features=cpp_modules
+
+# One language setting for interfaces, importers and third-party C++ sources.
+# rules_cc otherwise emits /std:c++17 before the requested MSVC standard.
+build:windows --features=-default_cpp_std
+build:windows --cxxopt=/std:c++23preview
+build:linux --cxxopt=-std=c++23
+build:macos --cxxopt=-std=c++23
+
+# Windows x64 MSVC only. Install the matching C++ AddressSanitizer component
+# and run from vcvars64.bat so its bin/Hostx64/x64 directory is on PATH.
+# /Z7 avoids Edit-and-Continue; opt mode avoids /RTC and the debug CRT.
+# /INFERASANLIBS selects the matching import/thunk libraries automatically.
+build:asan --compiler=msvc-cl
+build:asan --compilation_mode=opt
+build:asan --cxxopt=/fsanitize=address
+build:asan --cxxopt=/Z7
+build:asan --features=generate_pdb_file
+build:asan --linkopt=/DEBUG
+build:asan --linkopt=/INCREMENTAL:NO
+build:asan --linkopt=/INFERASANLIBS
+test:asan --test_env=PATH
+test:asan --test_output=errors

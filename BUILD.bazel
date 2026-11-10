@@ -1,0 +1,8 @@
+# rules_cc 0.2.26 defines NDEBUG for ordinary opt compiles, but not the
+# c++20-module-compile action. Match that macro in our module interfaces.
+config_setting(
+    name = "windows_opt",
+    constraint_values = ["@platforms//os:windows"],
+    values = {"compilation_mode": "opt"},
+    visibility = ["//src:__subpackages__"],
+)

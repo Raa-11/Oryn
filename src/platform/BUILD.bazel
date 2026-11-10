@@ -1,0 +1,97 @@
+load("@rules_cc//cc:cc_test.bzl", "cc_test")
+load("@rules_cc//cc:cc_library.bzl", "cc_library")
+cc_library(
+    name = "window",
+    srcs = ["window.cpp"],
+    features = ["cpp_modules"],
+    module_interfaces = ["window.cppm"],
+    local_defines = select({
+        "//:windows_opt": ["NDEBUG"],
+        "//conditions:default": [],
+    }),
+    # CLion's Bazel aspect omits module_interfaces; expose them without compiling twice.
+    textual_hdrs = ["window.cppm"],
+    deps = ["@slint"],
+    linkopts = select({"@platforms//os:windows": ["user32.lib", "gdi32.lib", "comctl32.lib", "shell32.lib"], "//conditions:default": []}),
+    visibility = ["//src/app:__pkg__"],
+)
+
+cc_test(
+    name = "window_test",
+    size = "small",
+    srcs = ["window_test.cpp"],
+    features = ["cpp_modules"],
+    target_compatible_with = select({
+        "@platforms//os:windows": [],
+        "//conditions:default": ["@platforms//:incompatible"],
+    }),
+    deps = [":window"],
+)
+
+cc_library(
+    name = "paths",
+    srcs = ["paths.cpp"],
+    features = ["cpp_modules"],
+    module_interfaces = ["paths.cppm"],
+    textual_hdrs = ["paths.cppm"],
+    local_defines = select({
+        "//:windows_opt": ["NDEBUG"],
+        "//conditions:default": [],
+    }),
+    linkopts = select({
+        "@platforms//os:windows": ["shell32.lib", "ole32.lib"],
+        "//conditions:default": [],
+    }),
+    visibility = ["//src:__subpackages__"],
+)
+
+cc_library(
+    name = "credentials",
+    srcs = ["credentials.cpp"],
+    features = ["cpp_modules"],
+    module_interfaces = ["credentials.cppm"],
+    textual_hdrs = ["credentials.cppm"],
+    local_defines = select({
+        "//:windows_opt": ["NDEBUG"],
+        "//conditions:default": [],
+    }),
+    linkopts = select({
+        "@platforms//os:windows": ["advapi32.lib"],
+        "//conditions:default": [],
+    }),
+    visibility = ["//src:__subpackages__"],
+)
+
+cc_test(
+    name = "credentials_test",
+    size = "small",
+    srcs = ["credentials_test.cpp"],
+    features = ["cpp_modules"],
+    local_defines = select({
+        "//:windows_opt": ["NDEBUG"],
+        "//conditions:default": [],
+    }),
+    target_compatible_with = select({
+        "@platforms//os:windows": [],
+        "//conditions:default": ["@platforms//:incompatible"],
+    }),
+    linkopts = ["ole32.lib"],
+    deps = [":credentials"],
+)
+
+cc_test(
+    name = "paths_test",
+    size = "small",
+    srcs = ["paths_test.cpp"],
+    features = ["cpp_modules"],
+    local_defines = select({
+        "//:windows_opt": ["NDEBUG"],
+        "//conditions:default": [],
+    }),
+    target_compatible_with = select({
+        "@platforms//os:windows": [],
+        "//conditions:default": ["@platforms//:incompatible"],
+    }),
+    linkopts = ["ole32.lib"],
+    deps = [":paths"],
+)

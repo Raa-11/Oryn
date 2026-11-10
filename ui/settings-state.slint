@@ -1,0 +1,73 @@
+export global SettingsData {
+    in property <bool> loaded: false;
+    in property <bool> saving: false;
+    in property <string> error;
+    in property <bool> light-mode: false;
+    in property <bool> reduce-motion: false;
+    in property <bool> always-on-top: true;
+    in property <bool> expanded: true;
+    in property <bool> remember-position: false;
+    in property <int> window-x: 0;
+    in property <int> window-y: 0;
+    in property <int> focus-minutes: 25;
+    in property <int> short-minutes: 5;
+    in property <int> long-minutes: 15;
+}
+
+export global SettingsActions {
+    callback save(bool, bool, bool, bool, bool, int, int, int, int, int);
+    callback restore-defaults();
+    callback use-current-position();
+    callback exit();
+}
+
+// View-owned draft survives navigation. Host snapshots never replace edits.
+export global SettingsDraft {
+    in-out property <bool> initialized: false;
+    in-out property <bool> light-mode: false;
+    in-out property <bool> reduce-motion: false;
+    in-out property <bool> always-on-top: true;
+    in-out property <bool> expanded: true;
+    in-out property <bool> remember-position: false;
+    in-out property <string> window-x: "0";
+    in-out property <string> window-y: "0";
+    in-out property <string> focus-minutes: "25";
+    in-out property <string> short-minutes: "5";
+    in-out property <string> long-minutes: "15";
+
+    out property <bool> modified: initialized && (
+        light-mode != SettingsData.light-mode || reduce-motion != SettingsData.reduce-motion
+        || always-on-top != SettingsData.always-on-top || expanded != SettingsData.expanded
+        || remember-position != SettingsData.remember-position
+        || window-x != "\{SettingsData.window-x}" || window-y != "\{SettingsData.window-y}"
+        || focus-minutes != "\{SettingsData.focus-minutes}"
+        || short-minutes != "\{SettingsData.short-minutes}"
+        || long-minutes != "\{SettingsData.long-minutes}");
+
+    public function load() {
+        self.light-mode = SettingsData.light-mode;
+        self.reduce-motion = SettingsData.reduce-motion;
+        self.always-on-top = SettingsData.always-on-top;
+        self.expanded = SettingsData.expanded;
+        self.remember-position = SettingsData.remember-position;
+        self.window-x = "\{SettingsData.window-x}";
+        self.window-y = "\{SettingsData.window-y}";
+        self.focus-minutes = "\{SettingsData.focus-minutes}";
+        self.short-minutes = "\{SettingsData.short-minutes}";
+        self.long-minutes = "\{SettingsData.long-minutes}";
+        self.initialized = true;
+    }
+
+    public function defaults() {
+        self.light-mode = false;
+        self.reduce-motion = false;
+        self.always-on-top = true;
+        self.expanded = true;
+        self.remember-position = false;
+        self.window-x = "0";
+        self.window-y = "0";
+        self.focus-minutes = "25";
+        self.short-minutes = "5";
+        self.long-minutes = "15";
+    }
+}

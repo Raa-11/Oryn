@@ -1,0 +1,405 @@
+import { Metrics } from "../themes/metrics.slint";
+import { Theme } from "../themes/theme.slint";
+import { TimeData, TimeActions, TimerStatus } from "../time-state.slint";
+
+component DurationField inherits Rectangle {
+    in-out property <string> value;
+    in property <string> label;
+    in property <bool> framed: true;
+
+    callback accepted();
+
+    height: 30px * Metrics.scale;
+    border-radius: 7px * Metrics.scale;
+    background: framed ? Theme.control : transparent;
+    border-width: input.has-focus ? 1px : 0px;
+    border-color: Theme.input-focus;
+    forward-focus: input;
+    input := TextInput {
+        x: 5px * Metrics.scale;
+        width: parent.width - 10px * Metrics.scale;
+        text <=> root.value;
+        input-type: number;
+        font-size: Theme.font-title;
+        color: Theme.foreground;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+        selection-background-color: Theme.accent;
+        selection-foreground-color: Theme.on-accent;
+        accessible-label: root.label;
+        accepted => { root.accepted(); }
+    }
+}
+
+component TimeButton inherits Rectangle {
+    in property <string> label;
+    in property <bool> accent;
+    in property <bool> enabled: true;
+
+    callback activated();
+
+    height: 26px * Metrics.scale;
+    min-width: 58px * Metrics.scale;
+    border-radius: 8px * Metrics.scale;
+    background: accent ? Theme.accent : pointer.has-hover ? Theme.selected : Theme.control;
+    opacity: enabled ? 1 : 0.45;
+    border-width: focus.has-focus ? 1px : 0px;
+    border-color: Theme.accent;
+    accessible-role: button;
+    accessible-label: label;
+    accessible-action-default => {
+        if root.enabled {
+            root.activated();
+        }
+    }
+    Text {
+        text: root.label;
+        color: root.accent ? Theme.on-accent : Theme.foreground;
+        font-size: Theme.font-body;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+    }
+
+    focus := FocusScope {
+        enabled: root.enabled;
+        key-pressed(event) => {
+            if event.text == " " || event.text == "\n" {
+                root.activated();
+                return accept;
+            }
+            return reject;
+        }
+    }
+
+    pointer := TouchArea {
+        enabled: root.enabled;
+        clicked => { root.activated(); }
+    }
+}
+
+export component TimeScreen inherits Rectangle {
+    in property <bool> reduce-motion;
+
+    private property <bool> editing: false;
+
+    background: transparent;
+
+    VerticalLayout {
+        spacing: 12px * Metrics.scale;
+        padding-top: 4px * Metrics.scale;
+        padding-bottom: 10px * Metrics.scale;
+        HorizontalLayout {
+            alignment: center;
+            Rectangle {
+                width: 166px * Metrics.scale;
+                height: 28px * Metrics.scale;
+                border-radius: 15px * Metrics.scale;
+                background: Theme.control;
+                border-width: 1px;
+                border-color: Theme.control-border;
+                Rectangle {
+                    x: (TimeData.pomodoro ? 83px : 3px) * Metrics.scale;
+                    y: 3px * Metrics.scale;
+                    width: 80px * Metrics.scale;
+                    height: 22px * Metrics.scale;
+                    border-radius: 12px * Metrics.scale;
+                    background: Theme.accent;
+                    animate x {
+                        duration: root.reduce-motion ? 0ms : 180ms;
+                        easing: ease-in-out;
+                    }
+                }
+
+                HorizontalLayout {
+                    padding: 3px * Metrics.scale;
+                    spacing: 0px;
+                    TimeButton {
+                        width: 80px * Metrics.scale;
+                        height: 22px * Metrics.scale;
+                        background: transparent;
+                        label: "Standard";
+                        accent: !TimeData.pomodoro;
+                        activated => { TimeActions.select-mode(false); }
+                    }
+
+                    TimeButton {
+                        width: 80px * Metrics.scale;
+                        height: 22px * Metrics.scale;
+                        background: transparent;
+                        label: "Pomodoro";
+                        accent: TimeData.pomodoro;
+                        activated => { TimeActions.select-mode(true); }
+                    }
+                }
+            }
+        }
+
+        if !TimeData.pomodoro && TimeData.status == TimerStatus.idle: VerticalLayout {
+            spacing: 12px * Metrics.scale;
+            VerticalLayout {
+                spacing: 4px * Metrics.scale;
+                Text {
+                    text: "Set a timer";
+                    color: Theme.foreground;
+                    font-size: Theme.font-section;
+                    font-weight: 500;
+                    horizontal-alignment: center;
+                }
+
+                Text {
+                    text: "Choose a preset or make it your own.";
+                    color: Theme.muted;
+                    font-size: Theme.font-caption;
+                    horizontal-alignment: center;
+                }
+            }
+
+            HorizontalLayout {
+                alignment: center;
+                spacing: 8px * Metrics.scale;
+                for preset in [1, 2, 3, 5, 10, 25]: Rectangle {
+                    width: 42px * Metrics.scale;
+                    height: 42px * Metrics.scale;
+                    border-radius: 21px * Metrics.scale;
+                    background: touch.has-hover ? Theme.selected : Theme.inset;
+                    border-width: 1px;
+                    border-color: preset-focus.has-focus ? Theme.accent : touch.has-hover ? Theme.border-hover : Theme.border;
+                    animate background, border-color { duration: root.reduce-motion ? 0ms : 100ms; }
+                    accessible-role: button;
+                    accessible-label: preset + " minutes";
+                    accessible-action-default => { TimeActions.start-duration(preset, 0); }
+                    VerticalLayout {
+                        alignment: center;
+                        spacing: 2px * Metrics.scale;
+                        Text {
+                            text: preset;
+                            color: Theme.foreground;
+                            font-size: Theme.font-section;
+                            horizontal-alignment: center;
+                        }
+
+                        Text {
+                            text: "min";
+                            color: Theme.muted;
+                            font-size: Theme.font-tiny;
+                            horizontal-alignment: center;
+                        }
+                    }
+
+                    preset-focus := FocusScope {
+                        key-pressed(event) => {
+                            if event.text == " " || event.text == "\n" {
+                                TimeActions.start-duration(preset, 0);
+                                return accept;
+                            }
+                            return reject;
+                        }
+                    }
+
+                    touch := TouchArea {
+                        clicked => { TimeActions.start-duration(preset, 0); }
+                    }
+                }
+            }
+
+            HorizontalLayout {
+                alignment: center;
+                VerticalLayout {
+                    width: 324px * Metrics.scale;
+                    spacing: 6px * Metrics.scale;
+                    Text {
+                        text: "Custom duration";
+                        color: Theme.muted;
+                        font-size: Theme.font-caption;
+                    }
+
+                    Rectangle {
+                        height: 44px * Metrics.scale;
+                        border-radius: 12px * Metrics.scale;
+                        background: Theme.inset;
+                        border-width: 1px;
+                        border-color: Theme.border;
+                        HorizontalLayout {
+                            padding: 7px * Metrics.scale;
+                            spacing: 4px * Metrics.scale;
+                            minutes := DurationField {
+                                width: 58px * Metrics.scale;
+                                framed: false;
+                                value: "15";
+                                label: "Timer minutes";
+                                accepted => { TimeActions.start-duration(round(self.value.to-float()), round(seconds.value.to-float())); }
+                            }
+
+                            Text {
+                                text: "min";
+                                color: Theme.muted;
+                                font-size: Theme.font-caption;
+                                vertical-alignment: center;
+                            }
+
+                            Rectangle {
+                                width: 1px;
+                                height: 20px * Metrics.scale;
+                                background: Theme.input-separator;
+                            }
+
+                            seconds := DurationField {
+                                width: 45px * Metrics.scale;
+                                framed: false;
+                                value: "00";
+                                label: "Timer seconds";
+                                accepted => { TimeActions.start-duration(round(minutes.value.to-float()), round(self.value.to-float())); }
+                            }
+
+                            Text {
+                                text: "sec";
+                                color: Theme.muted;
+                                font-size: Theme.font-caption;
+                                vertical-alignment: center;
+                            }
+
+                            Rectangle {
+                                horizontal-stretch: 1;
+                            }
+
+                            TimeButton {
+                                width: 74px * Metrics.scale;
+                                height: 30px * Metrics.scale;
+                                label: "Start";
+                                accent: true;
+                                activated => { TimeActions.start-duration(round(minutes.value.to-float()), round(seconds.value.to-float())); }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        if TimeData.pomodoro || TimeData.status != TimerStatus.idle: VerticalLayout {
+            spacing: 7px * Metrics.scale;
+            Text {
+                text: TimeData.pomodoro ? TimeData.phase + " · " + TimeData.session + " of 4"
+                    : TimeData.status == TimerStatus.running ? "Counting down" : TimeData.status == TimerStatus.paused ? "Paused" : "Timer finished";
+                color: Theme.muted;
+                font-size: Theme.font-body;
+                horizontal-alignment: center;
+            }
+
+            Text {
+                text: TimeData.remaining;
+                color: Theme.foreground;
+                font-size: Theme.font-timer;
+                horizontal-alignment: center;
+            }
+
+            HorizontalLayout {
+                alignment: center;
+                Rectangle {
+                    width: 180px * Metrics.scale;
+                    height: 3px * Metrics.scale;
+                    background: Theme.separator;
+                    border-radius: 2px * Metrics.scale;
+                    Rectangle {
+                        width: parent.width * TimeData.progress;
+                        height: parent.height;
+                        background: Theme.accent;
+                        border-radius: parent.border-radius;
+                    }
+                }
+            }
+
+            if TimeData.pomodoro: HorizontalLayout {
+                height: 8px * Metrics.scale;
+                alignment: center;
+                spacing: 5px * Metrics.scale;
+                for number in [1, 2, 3, 4]: Rectangle {
+                    width: 4px * Metrics.scale;
+                    height: 4px * Metrics.scale;
+                    border-radius: 2px * Metrics.scale;
+                    background: number == TimeData.session ? Theme.accent : Theme.separator;
+                }
+            }
+            HorizontalLayout {
+                alignment: center;
+                spacing: 8px * Metrics.scale;
+                TimeButton {
+                    width: 100px * Metrics.scale;
+                    accent: true;
+                    label: TimeData.status == TimerStatus.running ? "Pause" : TimeData.status == TimerStatus.paused ? "Resume" : TimeData.pomodoro ? "Start " + TimeData.phase : "Restart";
+                    activated => { TimeActions.toggle(); }
+                }
+
+                TimeButton {
+                    width: 62px * Metrics.scale;
+                    label: "Reset";
+                    activated => { TimeActions.reset(); }
+                }
+
+                TimeButton {
+                    width: 62px * Metrics.scale;
+                    label: "Cancel";
+                    activated => { TimeActions.cancel(); }
+                }
+            }
+
+            if TimeData.pomodoro: HorizontalLayout {
+                alignment: center;
+                TimeButton {
+                    width: 160px * Metrics.scale;
+                    label: root.editing ? "Focus / short / long · Hide" : "Edit durations (minutes)";
+                    enabled: TimeData.status == TimerStatus.idle;
+                    activated => { root.editing = !root.editing; }
+                }
+            }
+            if TimeData.pomodoro && root.editing && TimeData.status == TimerStatus.idle: HorizontalLayout {
+                alignment: center;
+                spacing: 5px * Metrics.scale;
+                focus := DurationField {
+                    value: TimeData.focus-minutes;
+                    width: 70px * Metrics.scale;
+                    label: "Focus minutes";
+                }
+
+                short := DurationField {
+                    value: TimeData.short-minutes;
+                    width: 70px * Metrics.scale;
+                    label: "Short break minutes";
+                }
+
+                long := DurationField {
+                    value: TimeData.long-minutes;
+                    width: 70px * Metrics.scale;
+                    label: "Long break minutes";
+                }
+
+                TimeButton {
+                    label: "Apply";
+                    width: 60px * Metrics.scale;
+                    activated => {
+                        TimeActions.configure(
+                            round(focus.value.to-float()),
+                            round(short.value.to-float()),
+                            round(long.value.to-float()));
+                        root.editing = false;
+                    }
+                }
+            }
+        }
+        if TimeData.error != "": Text {
+            text: TimeData.error;
+            color: Theme.error;
+            font-size: Theme.font-body;
+            wrap: word-wrap;
+            horizontal-alignment: center;
+        }
+        if TimeData.completed: Text {
+            text: TimeData.pomodoro ? "Session complete · start the next phase when ready." : "Time is up.";
+            color: Theme.muted;
+            font-size: Theme.font-body;
+            horizontal-alignment: center;
+            wrap: word-wrap;
+        }
+        Rectangle {
+            vertical-stretch: 1;
+        }
+    }
+}

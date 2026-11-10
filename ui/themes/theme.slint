@@ -1,0 +1,39 @@
+import { Metrics } from "metrics.slint";
+
+export global Theme {
+    in-out property <bool> light-mode: false;
+    out property <ColorScheme> color-scheme: light-mode ? ColorScheme.light : ColorScheme.dark;
+
+    out property <string> font-family: "Inter";
+    out property <length> font-tiny: 8px * Metrics.scale;
+    out property <length> font-caption: 9px * Metrics.scale;
+    out property <length> font-body: 10px * Metrics.scale;
+    out property <length> font-detail: 11px * Metrics.scale;
+    out property <length> font-subtitle: 12px * Metrics.scale;
+    out property <length> font-calendar: 13px * Metrics.scale;
+    out property <length> font-heading: 14px * Metrics.scale;
+    out property <length> font-section: 16px * Metrics.scale;
+    out property <length> font-title: 17px * Metrics.scale;
+    out property <length> font-display: 22px * Metrics.scale;
+    out property <length> font-timer: 42px * Metrics.scale;
+
+    out property <color> surface: light-mode ? #f3f5f7 : #090b0e;
+    out property <color> foreground: light-mode ? #172633 : #edf2f6;
+    out property <color> muted: light-mode ? #425467 : #a2acb8;
+    out property <color> control: light-mode ? #e4eaf0 : #151d25;
+    out property <color> control-hover: light-mode ? #d5e1ea : #202b36;
+    out property <color> selected: light-mode ? #cfdee9 : #253744;
+    out property <color> inset: light-mode ? #e4eaf0 : #111920;
+    out property <color> border: light-mode ? #c6d2dc : #27333e;
+    out property <color> control-border: light-mode ? #c6d2dc : #26313c;
+    out property <color> border-hover: light-mode ? #7792a7 : #476174;
+    out property <color> separator: light-mode ? #cbd3dc : #2a313a;
+    out property <color> input-separator: light-mode ? #c6d2dc : #2a3742;
+    out property <color> accent: #c1d8e9;
+    out property <color> on-accent: #172633;
+    out property <color> input-focus: #8fb3cb;
+    out property <color> error: light-mode ? #8a2f14 : #e9b6a2;
+    // The artwork remains dark in both themes.
+    out property <color> on-artwork: #edf2f6;
+    out property <color> on-artwork-muted: #a2acb8;
+}

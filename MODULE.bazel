@@ -1,0 +1,65 @@
+module(
+    name = "oryn",
+    version = "0.1.0",
+)
+
+bazel_dep(
+    name = "rules_cc",
+    version = "0.2.26",
+)
+bazel_dep(
+    name = "platforms",
+    version = "1.1.0",
+)
+
+new_local_repository = use_repo_rule(
+    "@bazel_tools//tools/build_defs/repo:local.bzl",
+    "new_local_repository",
+)
+
+new_local_repository(
+    name = "slint",
+    build_file_content = """
+load("@rules_cc//cc:cc_import.bzl", "cc_import")
+load("@rules_cc//cc:cc_library.bzl", "cc_library")
+
+exports_files(["bin/slint-compiler.exe"])
+
+cc_import(
+    name = "runtime",
+    interface_library = "lib/slint_cpp.dll.lib",
+    shared_library = "lib/slint_cpp.dll",
+)
+
+cc_library(
+    name = "slint",
+    hdrs = glob(["include/**/*.h"]),
+    includes = ["include/slint"],
+    deps = [":runtime"],
+    visibility = ["//visibility:public"],
+)
+""",
+    path = "C:/Program Files/Slint-cpp 1.18.1",
+)
+
+bazel_dep(name = "doctest", version = "2.4.12.bcr.1")
+bazel_dep(name = "boost.asio", version = "1.89.0.bcr.2")
+bazel_dep(name = "sqlite3", version = "3.53.4")
+bazel_dep(name = "quill", version = "13.1.0")
+
+http_archive = use_repo_rule("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
+http_archive(
+    name = "entt",
+    urls = ["https://github.com/skypjack/entt/archive/refs/tags/v3.15.0.tar.gz"],
+    sha256 = "01466fcbf77618a79b62891510c0bbf25ac2804af5751c84982b413852234d66",
+    strip_prefix = "entt-3.15.0",
+    build_file_content = """
+load("@rules_cc//cc:cc_library.bzl", "cc_library")
+cc_library(
+    name = "entt",
+    hdrs = glob(["single_include/**/*.hpp"]),
+    includes = ["single_include"],
+    visibility = ["//visibility:public"],
+)
+""",
+)

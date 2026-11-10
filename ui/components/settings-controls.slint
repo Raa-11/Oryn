@@ -1,0 +1,247 @@
+import { Metrics } from "../themes/metrics.slint";
+import { Theme } from "../themes/theme.slint";
+
+export component SettingsButton inherits Rectangle {
+    in property <string> label;
+    in property <string> accessible-name: label;
+    in property <bool> enabled: true;
+    in property <bool> selected: false;
+    in property <bool> accent: false;
+    in property <bool> quiet: false;
+    in property <bool> show-icon: false;
+    in property <image> icon;
+    in property <length> label-font-size: Theme.font-caption;
+    in property <length> horizontal-padding: 7px * Metrics.scale;
+    in property <length> icon-size: 11px * Metrics.scale;
+    in property <length> content-spacing: 4px * Metrics.scale;
+
+    callback activated();
+
+    width: content.preferred-width;
+    height: 23px * Metrics.scale;
+    horizontal-stretch: 0;
+    border-radius: 5px * Metrics.scale;
+    background: root.accent ? Theme.accent
+        : root.selected || pointer.pressed ? Theme.selected
+        : pointer.has-hover && root.enabled ? Theme.control-hover
+        : root.quiet ? transparent : Theme.control;
+    opacity: root.enabled ? 1 : 0.45;
+    border-width: focus.has-focus ? 1px * Metrics.scale : 0px;
+    border-color: Theme.input-focus;
+    forward-focus: focus;
+    accessible-role: button;
+    accessible-label: root.accessible-name;
+    accessible-description: root.selected ? "Selected" : "";
+    accessible-enabled: root.enabled;
+    accessible-action-default => {
+        if root.enabled {
+            root.activated();
+        }
+    }
+
+    content := HorizontalLayout {
+        padding-left: root.horizontal-padding;
+        padding-right: root.horizontal-padding;
+        spacing: root.content-spacing;
+        alignment: center;
+        if root.show-icon: VerticalLayout {
+            width: root.icon-size;
+            horizontal-stretch: 0;
+            alignment: center;
+            Image {
+                source: root.icon;
+                width: root.icon-size;
+                height: root.icon-size;
+                colorize: root.accent ? Theme.on-accent
+                    : root.selected || !root.quiet ? Theme.foreground : Theme.muted;
+                accessible-role: none;
+            }
+        }
+
+        Text {
+            text: root.label;
+            font-family: Theme.font-family;
+            font-size: root.label-font-size;
+            color: root.accent ? Theme.on-accent
+                : root.selected || !root.quiet ? Theme.foreground : Theme.muted;
+            vertical-alignment: center;
+            accessible-role: none;
+        }
+    }
+
+    focus := FocusScope {
+        enabled: root.enabled;
+        key-pressed(event) => {
+            if root.enabled && (event.text == " " || event.text == "\n" || event.text == Key.Return) {
+                root.activated();
+                return accept;
+            }
+            return reject;
+        }
+    }
+
+    pointer := TouchArea {
+        enabled: root.enabled;
+        clicked => {
+            focus.focus();
+            root.activated();
+        }
+    }
+}
+
+export component SettingsToggle inherits Rectangle {
+    in property <string> label;
+    in property <bool> enabled: true;
+    in-out property <bool> checked;
+
+    width: 29px * Metrics.scale;
+    height: 17px * Metrics.scale;
+    horizontal-stretch: 0;
+    border-radius: 15px * Metrics.scale;
+    background: root.checked ? Theme.accent
+        : pointer.has-hover && root.enabled ? Theme.control-hover : Theme.separator;
+    opacity: root.enabled ? 1 : 0.45;
+    border-width: focus.has-focus ? 1px * Metrics.scale : 0px;
+    border-color: Theme.input-focus;
+    forward-focus: focus;
+    accessible-role: checkbox;
+    accessible-label: root.label;
+    accessible-checkable: true;
+    accessible-checked: root.checked;
+    accessible-enabled: root.enabled;
+    accessible-action-default => {
+        if root.enabled {
+            root.checked = !root.checked;
+        }
+    }
+
+    Rectangle {
+        x: (root.checked ? 14px : 2px) * Metrics.scale;
+        y: 2px * Metrics.scale;
+        width: 13px * Metrics.scale;
+        height: 13px * Metrics.scale;
+        border-radius: 7px * Metrics.scale;
+        background: root.checked ? Theme.on-accent : Theme.muted;
+    }
+
+    focus := FocusScope {
+        enabled: root.enabled;
+        key-pressed(event) => {
+            if root.enabled && (event.text == " " || event.text == "\n" || event.text == Key.Return) {
+                root.checked = !root.checked;
+                return accept;
+            }
+            return reject;
+        }
+    }
+
+    pointer := TouchArea {
+        enabled: root.enabled;
+        clicked => {
+            focus.focus();
+            root.checked = !root.checked;
+        }
+    }
+}
+
+export component SettingsInput inherits Rectangle {
+    in property <string> label;
+    in property <bool> enabled: true;
+    in-out property <string> value;
+
+    width: 76px * Metrics.scale;
+    height: 24px * Metrics.scale;
+    horizontal-stretch: 0;
+    border-radius: 5px * Metrics.scale;
+    background: root.enabled ? Theme.control : Theme.inset;
+    border-width: 1px * Metrics.scale;
+    border-color: input.has-focus ? Theme.input-focus : Theme.control-border;
+    forward-focus: input;
+
+    viewport := Rectangle {
+        x: 6px * Metrics.scale;
+        y: 0px;
+        width: parent.width - 12px * Metrics.scale;
+        height: parent.height;
+        clip: true;
+
+        // Keep the caret visible even while editing an out-of-range draft.
+        input := TextInput {
+            private property <length> scroll-x;
+            x: min(0px, max(viewport.width - self.width - self.text-cursor-width, self.scroll-x));
+            width: max(viewport.width - self.text-cursor-width, self.preferred-width);
+            height: parent.height;
+            text <=> root.value;
+            enabled: root.enabled;
+            read-only: !root.enabled;
+            single-line: true;
+            input-type: text;
+            font-family: Theme.font-family;
+            font-size: Theme.font-detail;
+            color: root.enabled ? Theme.foreground : Theme.muted;
+            horizontal-alignment: right;
+            vertical-alignment: center;
+            selection-background-color: Theme.accent;
+            selection-foreground-color: Theme.on-accent;
+            accessible-role: text-input;
+            accessible-label: root.label;
+            accessible-enabled: root.enabled;
+            accessible-read-only: !root.enabled;
+            cursor-position-changed(position) => {
+                if position.x + self.scroll-x < 0px {
+                    self.scroll-x = -position.x;
+                } else if position.x + self.scroll-x > viewport.width - self.text-cursor-width {
+                    self.scroll-x = viewport.width - position.x - self.text-cursor-width;
+                }
+            }
+        }
+    }
+}
+
+export component SettingsRow inherits Rectangle {
+    in property <string> label;
+    in property <string> hint;
+    in property <bool> separator: true;
+
+    height: 48px * Metrics.scale;
+    background: transparent;
+    HorizontalLayout {
+        spacing: 8px * Metrics.scale;
+        padding-bottom: 1px * Metrics.scale;
+        VerticalLayout {
+            horizontal-stretch: 1;
+            min-width: 0px;
+            spacing: 4px * Metrics.scale;
+            alignment: center;
+            Text {
+                text: root.label;
+                font-family: Theme.font-family;
+                font-size: Theme.font-detail;
+                color: Theme.foreground;
+                overflow: elide;
+            }
+
+            if root.hint != "": Text {
+                text: root.hint;
+                font-family: Theme.font-family;
+                font-size: Theme.font-caption;
+                color: Theme.muted;
+                overflow: elide;
+            }
+        }
+
+        VerticalLayout {
+            horizontal-stretch: 0;
+            alignment: center;
+            @children
+        }
+    }
+
+    if root.separator: Rectangle {
+        x: 0px;
+        y: parent.height - self.height;
+        width: parent.width;
+        height: 1px * Metrics.scale;
+        background: Theme.separator;
+    }
+}

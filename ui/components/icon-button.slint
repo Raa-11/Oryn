@@ -1,0 +1,68 @@
+import { Metrics } from "../themes/metrics.slint";
+import { Theme } from "../themes/theme.slint";
+
+export component IconButton inherits Rectangle {
+    in property <image> icon;
+    in property <string> label;
+    in property <bool> selected;
+    in property <bool> show-label: selected;
+    in property <bool> hover-enabled: true;
+    in property <length> content-padding: 5px * Metrics.scale;
+    in property <length> content-spacing: 5px * Metrics.scale;
+    in property <length> label-size: Theme.font-body;
+    in property <color> label-color: Theme.foreground;
+
+    callback activated();
+
+    height: 25px * Metrics.scale;
+    width: show-label ? 80px * Metrics.scale : 38.6667px * Metrics.scale;
+    horizontal-stretch: 0;
+    border-radius: 14px * Metrics.scale;
+    background: selected ? Theme.selected : root.hover-enabled && touch.has-hover ? Theme.control-hover : transparent;
+    border-width: focus.has-focus ? 1px * Metrics.scale : 0px * Metrics.scale;
+    border-color: Theme.accent;
+
+    accessible-role: button;
+    accessible-label: label;
+    accessible-action-default => { root.activated(); }
+
+    HorizontalLayout {
+        alignment: center;
+        padding-left: root.content-padding;
+        padding-right: root.content-padding;
+        spacing: root.content-spacing;
+
+        Rectangle {
+            width: 12px * Metrics.scale;
+
+            Image {
+                source: root.icon;
+                colorize: Theme.foreground;
+                width: 12px * Metrics.scale;
+                height: 12px * Metrics.scale;
+                y: (parent.height - self.height) / 2;
+            }
+        }
+
+        if root.show-label: Text {
+            text: root.label;
+            color: root.label-color;
+            font-size: root.label-size;
+            vertical-alignment: center;
+        }
+    }
+
+    focus := FocusScope {
+        key-pressed(event) => {
+            if event.text == " " || event.text == "\n" {
+                root.activated();
+                return accept;
+            }
+            return reject;
+        }
+    }
+
+    touch := TouchArea {
+        clicked => { root.activated(); }
+    }
+}

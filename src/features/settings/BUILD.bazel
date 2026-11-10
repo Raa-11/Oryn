@@ -1,0 +1,30 @@
+load("@rules_cc//cc:cc_library.bzl", "cc_library")
+load("@rules_cc//cc:cc_test.bzl", "cc_test")
+
+cc_library(
+    name = "settings",
+    srcs = ["settings_service.cpp"],
+    features = ["cpp_modules"],
+    module_interfaces = ["settings_service.cppm"],
+    textual_hdrs = ["settings_service.cppm"],
+    local_defines = select({
+        "//:windows_opt": ["NDEBUG"],
+        "//conditions:default": [],
+    }),
+    deps = ["//src/infrastructure/database:database"],
+    visibility = ["//src/app:__pkg__"],
+)
+
+cc_test(
+    name = "settings_test",
+    srcs = ["settings_test.cpp"],
+    features = ["cpp_modules"],
+    local_defines = ["DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN"],
+    deps = [
+        ":settings",
+        "//src/infrastructure/database:database",
+        "@doctest//doctest",
+        "@sqlite3//:sqlite3",
+    ],
+    size = "small",
+)

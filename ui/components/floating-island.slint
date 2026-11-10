@@ -1,0 +1,584 @@
+import { Metrics } from "../themes/metrics.slint";
+import { TimeScreen } from "../screens/time.slint";
+import { SettingsScreen } from "../screens/settings.slint";
+import { IconButton } from "icon-button.slint";
+import { NavigationTab } from "navigation-tab.slint";
+import { Theme } from "../themes/theme.slint";
+import { TimeData, TimeActions, TimerStatus } from "../time-state.slint";
+import { SettingsData } from "../settings-state.slint";
+import { CalendarScreen } from "../screens/calendar.slint";
+import {
+    CalendarData,
+    CalendarActions,
+    CalendarFilter,
+} from "../calendar-state.slint";
+
+export component FloatingIsland inherits Rectangle {
+    in-out property <bool> expanded: true;
+    in property <float> reveal: 1;
+    in property <float> panel-design-height: 289;
+    in-out property <bool> reduce-motion: false;
+    in-out property <string> active-page: "Home";
+    private property <bool> calendar-compact: root.active-page == "Calendar"
+        && TimeData.status != TimerStatus.running && TimeData.status != TimerStatus.paused;
+
+    changed active-page => {
+        if root.active-page == "Calendar" {
+            CalendarActions.refresh();
+        }
+    }
+
+    callback exit-requested();
+
+    private property <int> active-tab:
+        active-page == "Agents" ? 1
+        : active-page == "Ask AI" ? 2
+        : active-page == "Music" ? 3
+        : active-page == "Calendar" ? 4
+        : active-page == "Time" ? 5
+        : active-page == "Settings" ? 6
+        : 0;
+
+    background: transparent;
+
+    Path {
+        x: 0px;
+        y: 0px;
+        width: parent.width;
+        height: (35 + (root.panel-design-height - 35) * root.reveal) * 1px * Metrics.scale;
+        viewbox-width: 544;
+        viewbox-height: 35 + (root.panel-design-height - 35) * root.reveal;
+        fill: Theme.surface;
+        MoveTo {
+            x: (140 + -140 * root.reveal);
+            y: 0;
+        }
+
+        LineTo {
+            x: (404 + 140 * root.reveal);
+            y: 0;
+        }
+
+        CubicTo {
+            control-1-x: (397 + 137 * root.reveal);
+            control-1-y: 0;
+            control-2-x: (392 + 133 * root.reveal);
+            control-2-y: (1.75 + -1.75 * root.reveal);
+            x: (388.75 + 130.25 * root.reveal);
+            y: (4.875 + 0.125 * root.reveal);
+        }
+
+        CubicTo {
+            control-1-x: (385.5 + 127.5 * root.reveal);
+            control-1-y: (8 + 2 * root.reveal);
+            control-2-x: (384 + 128 * root.reveal);
+            control-2-y: (12.5 + 6.5 * root.reveal);
+            x: (384 + 128 * root.reveal);
+            y: (18 + 12 * root.reveal);
+        }
+
+        LineTo {
+            x: (384 + 128 * root.reveal);
+            y: (21 + (root.panel-design-height - 43) * root.reveal);
+        }
+
+        CubicTo {
+            control-1-x: (384 + 128 * root.reveal);
+            control-1-y: (30.3333 + (root.panel-design-height - 37.6666) * root.reveal);
+            control-2-x: (379.3333 + 125.3334 * root.reveal);
+            control-2-y: (35 + (root.panel-design-height - 35) * root.reveal);
+            x: (370 + 120 * root.reveal);
+            y: (35 + (root.panel-design-height - 35) * root.reveal);
+        }
+
+        LineTo {
+            x: (174 + -120 * root.reveal);
+            y: (35 + (root.panel-design-height - 35) * root.reveal);
+        }
+
+        CubicTo {
+            control-1-x: (164.6667 + -125.3334 * root.reveal);
+            control-1-y: (35 + (root.panel-design-height - 35) * root.reveal);
+            control-2-x: (160 + -128 * root.reveal);
+            control-2-y: (30.3333 + (root.panel-design-height - 37.6666) * root.reveal);
+            x: (160 + -128 * root.reveal);
+            y: (21 + (root.panel-design-height - 43) * root.reveal);
+        }
+
+        LineTo {
+            x: (160 + -128 * root.reveal);
+            y: (18 + 12 * root.reveal);
+        }
+
+        CubicTo {
+            control-1-x: (160 + -128 * root.reveal);
+            control-1-y: (12.5 + 6.5 * root.reveal);
+            control-2-x: (158.5 + -127.5 * root.reveal);
+            control-2-y: (8 + 2 * root.reveal);
+            x: (155.25 + -130.25 * root.reveal);
+            y: (4.875 + 0.125 * root.reveal);
+        }
+
+        CubicTo {
+            control-1-x: (152 + -133 * root.reveal);
+            control-1-y: (1.75 + -1.75 * root.reveal);
+            control-2-x: (147 + -137 * root.reveal);
+            control-2-y: 0;
+            x: (140 + -140 * root.reveal);
+            y: 0;
+        }
+
+        Close { }
+    }
+
+    if reveal > 0 && active-page == "Home": Rectangle {
+        opacity: max(0, (root.reveal - 0.35) / 0.65);
+        x: 44px * Metrics.scale;
+        y: 232px * Metrics.scale;
+        width: 456px * Metrics.scale;
+        height: 1px * Metrics.scale;
+        background: Theme.separator;
+    }
+    Rectangle {
+        visible: root.reveal < 1;
+        opacity: max(0, 1 - root.reveal * 3);
+        x: (parent.width - self.width) / 2;
+        y: 0px;
+        width: 224px * Metrics.scale;
+        height: 35px * Metrics.scale;
+        background: transparent;
+        accessible-role: button;
+        accessible-label: "Buka Oryn";
+        accessible-action-default => { root.expanded = true; }
+        HorizontalLayout {
+            padding-left: 11px * Metrics.scale;
+            padding-right: (TimeData.status == TimerStatus.running || TimeData.status == TimerStatus.paused ? 40px : 11px) * Metrics.scale;
+            spacing: 8px * Metrics.scale;
+            Rectangle {
+                width: 16px * Metrics.scale;
+                Image {
+                    source: @image-url("../assets/oryn-icon.png");
+                    colorize: Theme.foreground;
+                    width: 16px * Metrics.scale;
+                    height: 16px * Metrics.scale;
+                    y: (parent.height - self.height) / 2;
+                }
+            }
+
+            Text {
+                text: root.calendar-compact ? "Calendar" : TimeData.status == TimerStatus.idle && !TimeData.completed ? "Oryn" : TimeData.title;
+                color: Theme.foreground;
+                font-size: Theme.font-body;
+                vertical-alignment: center;
+                horizontal-stretch: 0;
+            }
+
+            Rectangle {
+                horizontal-stretch: 1;
+            }
+
+            Text {
+                text: root.calendar-compact ? CalendarData.today-count + " today" : TimeData.completed ? "Finished" : TimeData.status == TimerStatus.running || TimeData.status == TimerStatus.paused ? TimeData.remaining : "Ready";
+                color: Theme.muted;
+                font-size: Theme.font-caption;
+                vertical-alignment: center;
+                horizontal-stretch: 0;
+            }
+        }
+
+        FocusScope {
+            key-pressed(event) => {
+                if event.text == " " || event.text == "\n" {
+                    root.expanded = true;
+                    return accept;
+                }
+                return reject;
+            }
+        }
+
+        TouchArea {
+            clicked => { root.expanded = true; }
+        }
+
+        if TimeData.status == TimerStatus.running || TimeData.status == TimerStatus.paused: IconButton {
+            x: parent.width - 31px * Metrics.scale;
+            y: 5px * Metrics.scale;
+            width: 22px * Metrics.scale;
+            content-padding: 0px;
+            hover-enabled: false;
+            icon: TimeData.status == TimerStatus.running ? @image-url("../assets/pause.svg") : @image-url("../assets/play.svg");
+            label: TimeData.status == TimerStatus.running ? "Pause timer" : "Resume timer";
+            activated => { TimeActions.toggle(); }
+        }
+    }
+
+    Rectangle {
+        visible: root.reveal > 0;
+        x: 0px;
+        y: 0px;
+        height: root.panel-design-height * 1px * Metrics.scale;
+        cache-rendering-hint: true;
+        opacity: max(0, (root.reveal - 0.35) / 0.65);
+        VerticalLayout {
+            padding-top: (8px * Metrics.scale);
+            padding-bottom: (root.active-page == "Calendar" ? 16px : 12px) * Metrics.scale;
+            padding-left: (root.active-page == "Calendar" ? 48px : 44px) * Metrics.scale;
+            padding-right: (root.active-page == "Calendar" ? 48px : 44px) * Metrics.scale;
+            spacing: (12px * Metrics.scale);
+            HorizontalLayout {
+                height: (29px * Metrics.scale);
+                spacing: (8px * Metrics.scale);
+                Rectangle {
+                    background: Theme.control;
+                    border-radius: (15px * Metrics.scale);
+                    width: (316px * Metrics.scale);
+                    horizontal-stretch: 0;
+                    Rectangle {
+                        x: (2px + root.active-tab * 38.666667px) * Metrics.scale;
+                        y: 2px * Metrics.scale;
+                        width: 80px * Metrics.scale;
+                        height: 25px * Metrics.scale;
+                        border-radius: 13px * Metrics.scale;
+                        background: Theme.selected;
+                        opacity: root.active-page == "Mirror" ? 0 : 1;
+                        animate x {
+                            duration: root.reduce-motion ? 0ms : 240ms;
+                            easing: cubic-bezier(0.2, 0.8, 0.2, 1);
+                        }
+                        animate opacity { duration: root.reduce-motion ? 0ms : 120ms; }
+                    }
+
+                    HorizontalLayout {
+                        padding: (2px * Metrics.scale);
+                        spacing: (0px * Metrics.scale);
+                        for item in [
+                            { name: "Home", icon: @image-url("../assets/home.svg") },
+                            { name: "Agents", icon: @image-url("../assets/agents.svg") },
+                            { name: "Ask AI", icon: @image-url("../assets/ai.svg") },
+                            { name: "Music", icon: @image-url("../assets/music.svg") },
+                            { name: "Calendar", icon: @image-url("../assets/calendar.svg") },
+                            { name: "Time", icon: @image-url("../assets/time.svg") },
+                            { name: "Settings", icon: @image-url("../assets/settings.svg") }
+                        ]: NavigationTab {
+                            icon: item.icon;
+                            label: item.name;
+                            selected: root.active-page == item.name;
+                            reduce-motion: root.reduce-motion;
+                            activated => { root.active-page = item.name; }
+                        }
+                    }
+                }
+
+                HorizontalLayout {
+                    width: 124px * Metrics.scale;
+                    spacing: (5px * Metrics.scale);
+                    padding-left: 5px * Metrics.scale;
+                    padding-right: 5px * Metrics.scale;
+                    padding-top: 2px * Metrics.scale;
+                    padding-bottom: 2px * Metrics.scale;
+                    Image {
+                        source: @image-url("../assets/battery.svg");
+                        colorize: Theme.muted;
+                        width: (13px * Metrics.scale);
+                    }
+
+                    Text {
+                        width: 20px * Metrics.scale;
+                        text: "82%";
+                        color: Theme.muted;
+                        font-size: Theme.font-caption;
+                        vertical-alignment: center;
+                    }
+
+                    IconButton {
+                        width: 54px * Metrics.scale;
+                        hover-enabled: false;
+                        border-radius: 5px * Metrics.scale;
+                        content-padding: 6px * Metrics.scale;
+                        content-spacing: 4px * Metrics.scale;
+                        label-size: Theme.font-caption;
+                        label-color: Theme.muted;
+                        show-label: true;
+                        icon: @image-url("../assets/camera.svg");
+                        label: "Mirror";
+                        selected: root.active-page == "Mirror";
+                        activated => { root.active-page = "Mirror"; }
+                    }
+
+                    IconButton {
+                        width: 12px * Metrics.scale;
+                        hover-enabled: false;
+                        content-padding: 0px;
+                        border-radius: 4px * Metrics.scale;
+                        icon: @image-url("../assets/up.svg");
+                        label: "Tutup panel";
+                        activated => { root.expanded = false; }
+                    }
+                }
+            }
+
+            if root.active-page == "Home": VerticalLayout {
+                spacing: (12px * Metrics.scale);
+                HorizontalLayout {
+                    height: (14px * Metrics.scale);
+                    spacing: (6px * Metrics.scale);
+                    Text {
+                        text: CalendarData.today == "" ? "Home" : CalendarData.today;
+                        color: Theme.foreground;
+                        font-size: Theme.font-body;
+                    }
+
+                    Rectangle {
+                        horizontal-stretch: 1;
+                    }
+
+                    Image {
+                        source: @image-url("../assets/weather.svg");
+                        colorize: Theme.muted;
+                        width: (14px * Metrics.scale);
+                    }
+
+                    Text {
+                        text: "19°  Partly cloudy";
+                        color: Theme.muted;
+                        font-size: Theme.font-caption;
+                        horizontal-alignment: right;
+                    }
+                }
+
+                HorizontalLayout {
+                    height: (145px * Metrics.scale);
+                    spacing: (12px * Metrics.scale);
+                    Rectangle {
+                        width: (174px * Metrics.scale);
+                        border-radius: (12px * Metrics.scale);
+                        clip: true;
+                        Image {
+                            source: @image-url("../assets/music-artwork.png");
+                            image-fit: cover;
+                        }
+
+                        VerticalLayout {
+                            padding-top: (8px * Metrics.scale);
+                            padding-bottom: (8px * Metrics.scale);
+                            padding-left: (10px * Metrics.scale);
+                            padding-right: (10px * Metrics.scale);
+                            spacing: (7px * Metrics.scale);
+                            Text {
+                                text: "Now playing · demo";
+                                color: Theme.on-artwork;
+                                font-size: Theme.font-caption;
+                                height: (12px * Metrics.scale);
+                            }
+
+                            Rectangle {
+                                vertical-stretch: 1;
+                            }
+
+                            Text {
+                                text: "Weightless";
+                                color: Theme.on-artwork;
+                                font-size: Theme.font-title;
+                                font-weight: 500;
+                            }
+
+                            Text {
+                                text: "Marconi Union";
+                                color: Theme.on-artwork-muted;
+                                font-size: Theme.font-body;
+                            }
+
+                            HorizontalLayout {
+                                alignment: center;
+                                spacing: (13px * Metrics.scale);
+                                height: (25px * Metrics.scale);
+                                for icon in [
+                                    @image-url("../assets/previous.svg"),
+                                    @image-url("../assets/pause.svg"),
+                                    @image-url("../assets/next.svg")
+                                ]: Image {
+                                    source: icon;
+                                    colorize: Theme.on-artwork;
+                                    width: (14px * Metrics.scale);
+                                    height: (14px * Metrics.scale);
+                                    opacity: 1;
+                                }
+                            }
+                        }
+
+                        TouchArea {
+                            clicked => { root.active-page = "Music"; }
+                        }
+                    }
+
+                    VerticalLayout {
+                        spacing: (8px * Metrics.scale);
+                        Text {
+                            text: CalendarData.busy ? "Calendar · refreshing…" : CalendarData.filter == CalendarFilter.today ? "Calendar · Today" : CalendarData.filter == CalendarFilter.upcoming ? "Calendar · Upcoming" : "Calendar · Completed";
+                            color: Theme.muted;
+                            font-size: Theme.font-caption;
+                        }
+
+                        Text {
+                            text: CalendarData.tasks.length > 0 ? CalendarData.tasks[0].title : CalendarData.error != "" ? "Calendar unavailable" : CalendarData.loaded ? "No tasks in this view" : "Open your calendar";
+                            color: Theme.foreground;
+                            font-size: Theme.font-heading;
+                            font-weight: 500;
+                            overflow: elide;
+                        }
+
+                        Text {
+                            text: CalendarData.tasks.length > 0 ? (CalendarData.tasks[0].due-date == "" ? "No due date" : CalendarData.tasks[0].due-date) : CalendarData.loaded ? CalendarData.today-count + " tasks for today" : "Tasks stored on this device";
+                            color: Theme.muted;
+                            font-size: Theme.font-body;
+                            overflow: elide;
+                        }
+
+                        Text {
+                            text: "View tasks";
+                            color: Theme.muted;
+                            font-size: Theme.font-caption;
+                        }
+
+                        Rectangle {
+                            vertical-stretch: 1;
+                            TouchArea {
+                                clicked => { root.active-page = "Calendar"; }
+                            }
+                        }
+
+                        Rectangle {
+                            height: (1px * Metrics.scale);
+                            background: Theme.separator;
+                        }
+
+                        HorizontalLayout {
+                            height: (35px * Metrics.scale);
+                            spacing: (7px * Metrics.scale);
+                            Image {
+                                source: @image-url("../assets/time.svg");
+                                colorize: Theme.foreground;
+                                width: (14px * Metrics.scale);
+                            }
+
+                            VerticalLayout {
+                                Text {
+                                    text: TimeData.title;
+                                    color: Theme.foreground;
+                                    font-size: Theme.font-body;
+                                }
+
+                                Text {
+                                    text: TimeData.status-text;
+                                    color: Theme.muted;
+                                    font-size: Theme.font-tiny;
+                                }
+                            }
+
+                            Text {
+                                text: TimeData.remaining;
+                                color: Theme.foreground;
+                                font-size: Theme.font-display;
+                                horizontal-stretch: 0;
+                            }
+
+                            IconButton {
+                                width: 24px * Metrics.scale;
+                                content-padding: 0px;
+                                hover-enabled: false;
+                                icon: TimeData.status == TimerStatus.running ? @image-url("../assets/pause.svg") : @image-url("../assets/play.svg");
+                                label: TimeData.status == TimerStatus.running ? "Pause timer" : "Start or resume timer";
+                                activated => { TimeActions.toggle(); }
+                            }
+                        }
+                    }
+                }
+
+                HorizontalLayout {
+                    height: 45px * Metrics.scale;
+                    padding: 8px * Metrics.scale;
+                    spacing: 8px * Metrics.scale;
+                    Image {
+                        source: @image-url("../assets/calendar.svg");
+                        width: 16px * Metrics.scale;
+                        colorize: Theme.muted;
+                    }
+
+                    Text {
+                        text: CalendarData.today == "" ? "Personal calendar" : CalendarData.today;
+                        color: Theme.foreground;
+                        font-size: Theme.font-body;
+                        vertical-alignment: center;
+                    }
+
+                    Rectangle {
+                        horizontal-stretch: 1;
+                    }
+
+                    Text {
+                        text: CalendarData.loaded ? CalendarData.today-count + " tasks for today" : CalendarData.error != "" ? "Refresh Calendar to retry" : "Open Calendar to load tasks";
+                        color: Theme.muted;
+                        font-size: Theme.font-caption;
+                        vertical-alignment: center;
+                    }
+
+                    IconButton {
+                        icon: @image-url("../assets/calendar.svg");
+                        label: "Open Calendar";
+                        activated => { root.active-page = "Calendar"; }
+                    }
+                }
+            }
+            if root.active-page == "Time" && SettingsData.loaded: TimeScreen {
+                reduce-motion: root.reduce-motion;
+            }
+            if root.active-page == "Time" && !SettingsData.loaded: Text {
+                text: "Loading settings…";
+                color: Theme.muted;
+                font-size: Theme.font-detail;
+            }
+            if root.active-page == "Settings": SettingsScreen { }
+            if root.active-page == "Calendar": CalendarScreen { }
+            if root.active-page != "Home" && root.active-page != "Time" && root.active-page != "Settings" && root.active-page != "Calendar": VerticalLayout {
+                spacing: (12px * Metrics.scale);
+                Text {
+                    text: root.active-page;
+                    color: Theme.foreground;
+                    font-size: Theme.font-display;
+                    font-weight: 500;
+                }
+
+                Text {
+                    text: "Belum diimplementasikan";
+                    color: Theme.muted;
+                    font-size: Theme.font-subtitle;
+                }
+
+                Text {
+                    text: "Tampilan fitur akan mengikuti desain pada tahap roadmap terkait.";
+                    wrap: word-wrap;
+                    color: Theme.muted;
+                    font-size: Theme.font-detail;
+                }
+
+                Rectangle {
+                    vertical-stretch: 1;
+                }
+
+                HorizontalLayout {
+                    Text {
+                        text: "Oryn · UI preview";
+                        color: Theme.muted;
+                        font-size: Theme.font-body;
+                    }
+
+                    IconButton {
+                        icon: @image-url("../assets/close.svg");
+                        label: "Keluar aplikasi";
+                        activated => { root.exit-requested(); }
+                    }
+                }
+            }
+        }
+    }
+}

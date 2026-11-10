@@ -1,0 +1,430 @@
+import { ScrollView } from "std-widgets.slint";
+import { Metrics } from "../themes/metrics.slint";
+import { Theme } from "../themes/theme.slint";
+import { SettingsButton } from "../components/settings-controls.slint";
+import { CalendarInput, CalendarCheck, CalendarProperty } from "../components/calendar-controls.slint";
+import { CalendarData, CalendarActions, CalendarDraft, CalendarFilter } from "../calendar-state.slint";
+
+component CalendarButton inherits SettingsButton {
+    label-font-size: 10px * Metrics.scale;
+    horizontal-padding: 9px * Metrics.scale;
+    icon-size: 12px * Metrics.scale;
+    content-spacing: 5px * Metrics.scale;
+}
+
+component UnavailableValue inherits Rectangle {
+    in property <string> description;
+    height: 26px * Metrics.scale;
+    border-radius: 6px * Metrics.scale;
+    background: Theme.control;
+    border-width: 1px * Metrics.scale;
+    border-color: Theme.control-border;
+    accessible-role: text;
+    accessible-label: "Unavailable";
+    accessible-description: root.description;
+    Text {
+        x: 7px * Metrics.scale;
+        text: "Unavailable";
+        color: Theme.muted;
+        font-size: 10px * Metrics.scale;
+        accessible-role: none;
+    }
+}
+
+export component CalendarScreen inherits Rectangle {
+    private property <bool> ready: CalendarData.loaded && !CalendarData.busy;
+    background: transparent;
+
+    if CalendarDraft.open: VerticalLayout {
+        spacing: 12px * Metrics.scale;
+        HorizontalLayout {
+            height: 17px * Metrics.scale;
+            Text {
+                text: CalendarDraft.id == "" ? "New task" : "Edit task";
+                color: Theme.foreground;
+                font-size: Theme.font-heading;
+                vertical-alignment: center;
+            }
+            Rectangle { horizontal-stretch: 1; }
+            CalendarButton {
+                label: "Back";
+                accessible-name: "Cancel";
+                horizontal-padding: 0px;
+                quiet: true;
+                enabled: !CalendarData.busy;
+                activated => { CalendarDraft.cancel(); }
+            }
+        }
+        HorizontalLayout {
+            height: 27px * Metrics.scale;
+            spacing: 8px * Metrics.scale;
+            Text {
+                text: "Personal calendar";
+                color: Theme.muted;
+                font-size: Theme.font-caption;
+                vertical-alignment: center;
+            }
+            Rectangle { horizontal-stretch: 1; }
+            Rectangle {
+                width: 36px * Metrics.scale;
+                height: 19px * Metrics.scale;
+                border-radius: 4px * Metrics.scale;
+                background: Theme.selected;
+                Text { text: "Task"; color: Theme.foreground; font-size: Theme.font-caption; }
+            }
+            Text {
+                text: "Event";
+                color: Theme.muted;
+                font-size: Theme.font-caption;
+                accessible-description: "Unavailable: event creation is not supported. Only tasks can be created.";
+            }
+        }
+        property-scroll := ScrollView {
+            min-height: 0px;
+            vertical-stretch: 1;
+            horizontal-scrollbar-policy: always-off;
+            content-width: self.visible-width;
+            content-height: properties.preferred-height;
+            properties := VerticalLayout {
+                spacing: 0px;
+                CalendarProperty {
+                    label: "Title";
+                    icon: @image-url("../assets/calendar-task.svg");
+                    CalendarInput {
+                        label: "Task title";
+                        placeholder: "What needs doing?";
+                        value <=> CalendarDraft.title;
+                        enabled: !CalendarData.busy;
+                    }
+                }
+                CalendarProperty {
+                    label: "Date";
+                    icon: @image-url("../assets/calendar.svg");
+                    value-width: 155px * Metrics.scale;
+                    CalendarInput {
+                        width: 155px * Metrics.scale;
+                        label: "Task due date";
+                        accessible-description: "YYYY-MM-DD; leave blank for no due date.";
+                        value <=> CalendarDraft.due-date;
+                        enabled: !CalendarData.busy;
+                    }
+                }
+                CalendarProperty {
+                    label: "Time";
+                    hint: "Optional";
+                    icon: @image-url("../assets/calendar-clock.svg");
+                    value-width: 112px * Metrics.scale;
+                    UnavailableValue { description: "Task times are not supported. This value cannot be edited."; }
+                }
+                CalendarProperty {
+                    label: "Project";
+                    hint: "Optional";
+                    icon: @image-url("../assets/calendar-project.svg");
+                    value-width: 155px * Metrics.scale;
+                    UnavailableValue { description: "Task projects are not supported. This value cannot be edited."; }
+                }
+                CalendarProperty {
+                    label: "Notes";
+                    hint: "Optional context";
+                    icon: @image-url("../assets/calendar-notes.svg");
+                    value-width: 26px * Metrics.scale;
+                    CalendarButton {
+                        width: 26px * Metrics.scale;
+                        label: "";
+                        accessible-name: CalendarDraft.notes-expanded ? "Collapse notes" : "Expand notes";
+                        show-icon: true;
+                        icon: CalendarDraft.notes-expanded ? @image-url("../assets/up.svg") : @image-url("../assets/calendar-down.svg");
+                        quiet: true;
+                        horizontal-padding: 0px;
+                        enabled: !CalendarData.busy;
+                        activated => {
+                            CalendarDraft.notes-expanded = !CalendarDraft.notes-expanded;
+                            property-scroll.content-y = CalendarDraft.notes-expanded ? min(0px, property-scroll.visible-height - 305px * Metrics.scale) : 0px;
+                        }
+                    }
+                }
+                if CalendarDraft.notes-expanded: CalendarInput {
+                    width: parent.width;
+                    height: 90px * Metrics.scale;
+                    label: "Task notes";
+                    value <=> CalendarDraft.notes;
+                    multiline: true;
+                    enabled: !CalendarData.busy;
+                }
+            }
+        }
+        VerticalLayout {
+            height: (CalendarDraft.id != "" ? 60px : 34px) * Metrics.scale;
+            padding-top: 8px * Metrics.scale;
+            spacing: 4px * Metrics.scale;
+            if CalendarDraft.id != "": HorizontalLayout {
+                height: 22px * Metrics.scale;
+                spacing: 5px * Metrics.scale;
+                CalendarCheck {
+                    label: (CalendarDraft.completed ? "Reopen " : "Complete ") + CalendarDraft.title;
+                    checked: CalendarDraft.completed;
+                    enabled: root.ready;
+                    activated => { CalendarDraft.toggle-status(); }
+                }
+                Text {
+                    text: CalendarDraft.completed ? "Completed" : "Incomplete";
+                    color: Theme.muted;
+                    font-size: Theme.font-caption;
+                    vertical-alignment: center;
+                }
+                Rectangle { horizontal-stretch: 1; }
+                if CalendarDraft.deleting-id == "": CalendarButton {
+                    label: "Delete";
+                    accessible-name: "Delete " + CalendarDraft.title;
+                    quiet: true;
+                    enabled: root.ready;
+                    activated => { CalendarDraft.deleting-id = CalendarDraft.id; }
+                }
+                if CalendarDraft.deleting-id == CalendarDraft.id: HorizontalLayout {
+                    spacing: 4px * Metrics.scale;
+                    CalendarButton {
+                        label: "Confirm delete";
+                        enabled: root.ready;
+                        activated => { CalendarDraft.remove(); }
+                    }
+                    CalendarButton {
+                        label: "Keep task";
+                        quiet: true;
+                        enabled: !CalendarData.busy;
+                        activated => { CalendarDraft.deleting-id = ""; }
+                    }
+                }
+            }
+            HorizontalLayout {
+                height: 26px * Metrics.scale;
+                spacing: 8px * Metrics.scale;
+                Text {
+                    text: CalendarData.error != "" ? CalendarData.error : CalendarData.busy ? "Saving…" : "";
+                    color: CalendarData.error != "" ? Theme.error : Theme.muted;
+                    font-size: Theme.font-caption;
+                    wrap: word-wrap;
+                    min-width: 0px;
+                    horizontal-stretch: 1;
+                    accessible-label: self.text;
+                }
+                CalendarButton {
+                    label: CalendarDraft.id == "" ? "Create task" : "Save task";
+                    height: 26px * Metrics.scale;
+                    accent: true;
+                    enabled: root.ready && CalendarDraft.has-title;
+                    activated => { CalendarDraft.save(); }
+                }
+            }
+        }
+    }
+
+    if !CalendarDraft.open: VerticalLayout {
+        spacing: 12px * Metrics.scale;
+        HorizontalLayout {
+            height: 26px * Metrics.scale;
+            spacing: 8px * Metrics.scale;
+            Text { text: "Calendar"; color: Theme.foreground; font-size: Theme.font-heading; vertical-alignment: center; }
+            Rectangle { horizontal-stretch: 1; }
+            CalendarButton {
+                label: "Refresh";
+                quiet: true;
+                horizontal-padding: 0px;
+                enabled: !CalendarData.busy;
+                activated => { CalendarActions.refresh(); }
+            }
+            Text {
+                text: "Connect";
+                color: Theme.muted;
+                font-size: 10px * Metrics.scale;
+                accessible-description: "Unavailable: account integrations are not supported. Tasks are stored on this device.";
+            }
+            CalendarButton {
+                label: "New task";
+                height: 26px * Metrics.scale;
+                selected: true;
+                show-icon: true;
+                icon: @image-url("../assets/calendar-plus.svg");
+                enabled: root.ready;
+                activated => { CalendarDraft.create(); }
+            }
+        }
+        HorizontalLayout {
+            height: 20px * Metrics.scale;
+            spacing: 8px * Metrics.scale;
+            CalendarButton {
+                label: CalendarData.filter == CalendarFilter.today ? "Today" : CalendarData.filter == CalendarFilter.upcoming ? "Upcoming" : "Completed";
+                accessible-name: "Task filter";
+                height: 20px * Metrics.scale;
+                horizontal-padding: 8px * Metrics.scale;
+                selected: true;
+                enabled: !CalendarData.busy;
+                activated => { filters.show(); }
+                filters := PopupWindow {
+                    x: 0px;
+                    y: parent.height + 4px * Metrics.scale;
+                    width: 112px * Metrics.scale;
+                    height: 91px * Metrics.scale;
+                    Rectangle {
+                        background: Theme.surface;
+                        border-radius: 6px * Metrics.scale;
+                        border-width: 1px * Metrics.scale;
+                        border-color: Theme.control-border;
+                        VerticalLayout {
+                            padding: 5px * Metrics.scale;
+                            spacing: 3px * Metrics.scale;
+                            CalendarButton {
+                                label: "Today";
+                                selected: CalendarData.filter == CalendarFilter.today;
+                                activated => { CalendarDraft.deleting-id = ""; CalendarActions.select-filter(CalendarFilter.today); filters.close(); }
+                            }
+                            CalendarButton {
+                                label: "Upcoming";
+                                selected: CalendarData.filter == CalendarFilter.upcoming;
+                                activated => { CalendarDraft.deleting-id = ""; CalendarActions.select-filter(CalendarFilter.upcoming); filters.close(); }
+                            }
+                            CalendarButton {
+                                label: "Completed";
+                                selected: CalendarData.filter == CalendarFilter.completed;
+                                activated => { CalendarDraft.deleting-id = ""; CalendarActions.select-filter(CalendarFilter.completed); filters.close(); }
+                            }
+                        }
+                    }
+                }
+            }
+            Text {
+                text: "Month";
+                color: Theme.muted;
+                font-size: 10px * Metrics.scale;
+                accessible-description: "Unavailable: month view is not supported. Use Task filter to view Today, Upcoming, or Completed tasks.";
+            }
+            Rectangle { horizontal-stretch: 1; }
+            Text { text: CalendarData.today-label; color: Theme.muted; font-size: 10px * Metrics.scale; vertical-alignment: center; }
+        }
+        if CalendarData.error != "": Text {
+            text: CalendarData.error;
+            color: Theme.error;
+            font-size: Theme.font-caption;
+            wrap: word-wrap;
+            accessible-label: self.text;
+        }
+        if CalendarData.tasks.length == 0: VerticalLayout {
+            alignment: center;
+            spacing: 5px * Metrics.scale;
+            Text {
+                text: CalendarData.busy || (!CalendarData.loaded && CalendarData.error == "") ? "Loading tasks…" : !CalendarData.loaded ? "Tasks could not be loaded" : CalendarData.filter == CalendarFilter.completed ? "No completed tasks" : CalendarData.filter == CalendarFilter.upcoming ? "No upcoming tasks" : "No tasks for today";
+                color: Theme.foreground;
+                font-size: Theme.font-detail;
+            }
+            Text {
+                text: !CalendarData.loaded ? "Use Refresh to try again." : CalendarData.filter == CalendarFilter.completed ? "Completed tasks will appear here." : "Add a task to your personal calendar.";
+                color: Theme.muted;
+                font-size: Theme.font-caption;
+            }
+        }
+        if CalendarData.tasks.length > 0: ScrollView {
+            min-height: 0px;
+            vertical-stretch: 1;
+            horizontal-scrollbar-policy: always-off;
+            content-width: self.visible-width;
+            content-height: agenda.preferred-height;
+            agenda := VerticalLayout {
+                spacing: 0px;
+                for task in CalendarData.tasks: VerticalLayout {
+                    spacing: 0px;
+                    if task.group-start && CalendarData.filter != CalendarFilter.today: Text {
+                        height: 20px * Metrics.scale;
+                        text: task.group-label;
+                        color: Theme.muted;
+                        font-size: Theme.font-caption;
+                        vertical-alignment: center;
+                    }
+                    Rectangle {
+                        height: (CalendarDraft.deleting-id == task.id ? 76px : 49px) * Metrics.scale;
+                        VerticalLayout {
+                            spacing: 0px;
+                            HorizontalLayout {
+                                height: 48px * Metrics.scale;
+                                spacing: 8px * Metrics.scale;
+                                CalendarCheck {
+                                    width: 13px * Metrics.scale;
+                                    label: (task.completed ? "Reopen " : "Complete ") + task.title;
+                                    checked: task.completed;
+                                    enabled: root.ready;
+                                    activated => { CalendarActions.set-completed(task.id, !task.completed); }
+                                }
+                                VerticalLayout {
+                                    alignment: center;
+                                    spacing: 4px * Metrics.scale;
+                                    horizontal-stretch: 1;
+                                    min-width: 0px;
+                                    Text {
+                                        text: task.title.replace-all("\n", " ").replace-all("\u{d}", " ");
+                                        color: task.completed ? Theme.muted : Theme.foreground;
+                                        font-size: Theme.font-detail;
+                                        overflow: elide;
+                                    }
+                                    Text {
+                                        text: task.notes != "" ? task.notes.replace-all("\n", " ").replace-all("\u{d}", " ") : "Manual task";
+                                        color: Theme.muted;
+                                        font-size: Theme.font-caption;
+                                        overflow: elide;
+                                    }
+                                }
+                                CalendarButton {
+                                    label: "…";
+                                    accessible-name: "Task actions " + task.title;
+                                    quiet: true;
+                                    enabled: root.ready;
+                                    activated => { actions.show(); }
+                                    actions := PopupWindow {
+                                        x: parent.width - self.width;
+                                        y: parent.height;
+                                        width: 100px * Metrics.scale;
+                                        height: 59px * Metrics.scale;
+                                        Rectangle {
+                                            background: Theme.surface;
+                                            border-radius: 6px * Metrics.scale;
+                                            border-width: 1px * Metrics.scale;
+                                            border-color: Theme.control-border;
+                                            VerticalLayout {
+                                                padding: 5px * Metrics.scale;
+                                                spacing: 3px * Metrics.scale;
+                                                CalendarButton {
+                                                    label: "Edit";
+                                                    accessible-name: "Edit " + task.title;
+                                                    activated => { actions.close(); CalendarDraft.edit(task); }
+                                                }
+                                                CalendarButton {
+                                                    label: "Delete";
+                                                    accessible-name: "Delete " + task.title;
+                                                    activated => { CalendarDraft.deleting-id = task.id; actions.close(); }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            if CalendarDraft.deleting-id == task.id: HorizontalLayout {
+                                height: 27px * Metrics.scale;
+                                spacing: 5px * Metrics.scale;
+                                Text { text: "Delete this task?"; color: Theme.muted; font-size: Theme.font-caption; vertical-alignment: center; }
+                                Rectangle { horizontal-stretch: 1; }
+                                CalendarButton { label: "Confirm delete"; enabled: root.ready; activated => { CalendarActions.remove(task.id); } }
+                                CalendarButton { label: "Keep task"; quiet: true; enabled: !CalendarData.busy; activated => { CalendarDraft.deleting-id = ""; } }
+                            }
+                            Rectangle { height: 1px * Metrics.scale; background: Theme.separator; }
+                        }
+                    }
+                }
+            }
+        }
+        if CalendarData.page > 0 || CalendarData.has-more: HorizontalLayout {
+            height: 23px * Metrics.scale;
+            spacing: 5px * Metrics.scale;
+            Text { text: "Page \{CalendarData.page + 1}"; color: Theme.muted; font-size: Theme.font-caption; vertical-alignment: center; }
+            Rectangle { horizontal-stretch: 1; }
+            CalendarButton { label: "Previous page"; quiet: true; enabled: root.ready && CalendarData.page > 0; activated => { CalendarDraft.deleting-id = ""; CalendarActions.change-page(CalendarData.page - 1); } }
+            CalendarButton { label: "Next page"; quiet: true; enabled: root.ready && CalendarData.has-more; activated => { CalendarDraft.deleting-id = ""; CalendarActions.change-page(CalendarData.page + 1); } }
+        }
+    }
+}

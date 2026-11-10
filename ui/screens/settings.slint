@@ -1,0 +1,334 @@
+import {
+    SettingsButton,
+    SettingsToggle,
+    SettingsInput,
+    SettingsRow,
+} from "../components/settings-controls.slint";
+import { Metrics } from "../themes/metrics.slint";
+import { Theme } from "../themes/theme.slint";
+import {
+    SettingsData,
+    SettingsActions,
+    SettingsDraft,
+} from "../settings-state.slint";
+
+export component SettingsScreen inherits Rectangle {
+    private property <int> section: 0;
+    private property <bool> editable: SettingsData.loaded && !SettingsData.saving;
+    private property <bool> valid-position: root.integer(SettingsDraft.window-x, -1000000, 1000000)
+        && root.integer(SettingsDraft.window-y, -1000000, 1000000);
+    private property <bool> valid-durations: root.integer(SettingsDraft.focus-minutes, 1, 180)
+        && root.integer(SettingsDraft.short-minutes, 1, 180)
+        && root.integer(SettingsDraft.long-minutes, 1, 180);
+    private property <string> validation: !root.valid-position ? "X and Y must be whole pixels from -1000000 to 1000000."
+        : !root.valid-durations ? "Each duration must be a whole number from 1 to 180 minutes." : "";
+    private property <string> status: SettingsData.error != "" ? SettingsData.error
+        : !SettingsData.loaded ? "Loading settings…"
+        : SettingsData.saving ? "Saving settings…"
+        : root.validation != "" ? root.validation
+        : SettingsDraft.modified ? "Unsaved changes · Save to apply."
+        : "Settings saved on this device.";
+
+    pure function integer(value: string, minimum: float, maximum: float) -> bool {
+        return value.is-float() && value.to-float() >= minimum
+            && value.to-float() <= maximum && floor(value.to-float()) == value.to-float();
+    }
+
+    init => {
+        if SettingsData.loaded && !SettingsDraft.initialized {
+            SettingsDraft.load();
+        }
+    }
+
+    height: 228px * Metrics.scale;
+    background: transparent;
+    VerticalLayout {
+        spacing: 6px * Metrics.scale;
+        HorizontalLayout {
+            height: 23px * Metrics.scale;
+            spacing: 3px * Metrics.scale;
+            for title[index] in ["Appearance", "Window", "Timer"]: SettingsButton {
+                label: title;
+                selected: root.section == index;
+                quiet: true;
+                activated => { root.section = index; }
+            }
+
+            Rectangle {
+                horizontal-stretch: 1;
+            }
+        }
+
+        Rectangle {
+            height: 144px * Metrics.scale;
+            if root.section == 0: VerticalLayout {
+                spacing: 0px;
+                SettingsRow {
+                    label: "Theme";
+                    hint: "Choose how Oryn looks.";
+                    Rectangle {
+                        width: theme-options.preferred-width;
+                        height: 29px * Metrics.scale;
+                        horizontal-stretch: 0;
+                        border-radius: 7px * Metrics.scale;
+                        background: Theme.control;
+                        theme-options := HorizontalLayout {
+                            padding: 3px * Metrics.scale;
+                            spacing: 2px * Metrics.scale;
+                            SettingsButton {
+                                label: "Dark";
+                                accessible-name: "Dark theme";
+                                show-icon: true;
+                                icon: @image-url("../assets/moon.svg");
+                                selected: !SettingsDraft.light-mode;
+                                quiet: true;
+                                enabled: root.editable;
+                                activated => { SettingsDraft.light-mode = false; }
+                            }
+
+                            SettingsButton {
+                                label: "Light";
+                                accessible-name: "Light theme";
+                                show-icon: true;
+                                icon: @image-url("../assets/sun.svg");
+                                selected: SettingsDraft.light-mode;
+                                quiet: true;
+                                enabled: root.editable;
+                                activated => { SettingsDraft.light-mode = true; }
+                            }
+                        }
+                    }
+                }
+
+                SettingsRow {
+                    label: "Island shape";
+                    hint: "Current shape; not configurable.";
+                    Rectangle {
+                        width: 80px * Metrics.scale;
+                        height: 27px * Metrics.scale;
+                        horizontal-stretch: 0;
+                        border-radius: 7px * Metrics.scale;
+                        background: Theme.control;
+                        HorizontalLayout {
+                            padding-left: 9px * Metrics.scale;
+                            padding-right: 9px * Metrics.scale;
+                            spacing: 5px * Metrics.scale;
+                            alignment: center;
+                            VerticalLayout {
+                                width: 16px * Metrics.scale;
+                                horizontal-stretch: 0;
+                                alignment: center;
+                                Rectangle {
+                                    width: 16px * Metrics.scale;
+                                    height: 8px * Metrics.scale;
+                                    border-bottom-left-radius: 5px * Metrics.scale;
+                                    border-bottom-right-radius: 5px * Metrics.scale;
+                                    background: Theme.muted;
+                                }
+                            }
+
+                            Text {
+                                text: "Notch";
+                                font-family: Theme.font-family;
+                                font-size: Theme.font-caption;
+                                color: Theme.foreground;
+                                vertical-alignment: center;
+                                accessible-label: "Notch, current shape, not configurable";
+                            }
+                        }
+                    }
+                }
+
+                SettingsRow {
+                    label: "Reduce motion";
+                    hint: "Use shorter, quieter transitions.";
+                    SettingsToggle {
+                        label: "Reduce motion";
+                        enabled: root.editable;
+                        checked <=> SettingsDraft.reduce-motion;
+                    }
+                }
+            }
+            if root.section == 1: VerticalLayout {
+                spacing: 0px;
+                SettingsRow {
+                    height: 36px * Metrics.scale;
+                    label: "Always on top";
+                    hint: "Keep Oryn above other windows.";
+                    SettingsToggle {
+                        label: "Always on top";
+                        enabled: root.editable;
+                        checked <=> SettingsDraft.always-on-top;
+                    }
+                }
+
+                SettingsRow {
+                    height: 36px * Metrics.scale;
+                    label: "Start expanded";
+                    hint: "Open expanded; hidden Oryn stays in the tray.";
+                    SettingsToggle {
+                        label: "Start expanded";
+                        enabled: root.editable;
+                        checked <=> SettingsDraft.expanded;
+                    }
+                }
+
+                SettingsRow {
+                    height: 36px * Metrics.scale;
+                    label: "Remember position";
+                    hint: "Restore this position on the next launch.";
+                    SettingsToggle {
+                        label: "Remember position";
+                        enabled: root.editable;
+                        checked <=> SettingsDraft.remember-position;
+                    }
+                }
+
+                HorizontalLayout {
+                    height: 32px * Metrics.scale;
+                    spacing: 6px * Metrics.scale;
+                    Text {
+                        text: "X (px)";
+                        font-family: Theme.font-family;
+                        font-size: Theme.font-caption;
+                        color: Theme.muted;
+                        vertical-alignment: center;
+                    }
+
+                    VerticalLayout {
+                        horizontal-stretch: 0;
+                        alignment: center;
+                        SettingsInput {
+                            label: "Window X (px)";
+                            value <=> SettingsDraft.window-x;
+                            enabled: root.editable;
+                        }
+                    }
+
+                    Text {
+                        text: "Y (px)";
+                        font-family: Theme.font-family;
+                        font-size: Theme.font-caption;
+                        color: Theme.muted;
+                        vertical-alignment: center;
+                    }
+
+                    VerticalLayout {
+                        horizontal-stretch: 0;
+                        alignment: center;
+                        SettingsInput {
+                            label: "Window Y (px)";
+                            value <=> SettingsDraft.window-y;
+                            enabled: root.editable;
+                        }
+                    }
+
+                    Rectangle {
+                        horizontal-stretch: 1;
+                    }
+
+                    VerticalLayout {
+                        horizontal-stretch: 0;
+                        alignment: center;
+                        SettingsButton {
+                            label: "Use current position";
+                            enabled: root.editable;
+                            activated => {
+                                SettingsActions.use-current-position();
+                                SettingsDraft.window-x = "\{SettingsData.window-x}";
+                                SettingsDraft.window-y = "\{SettingsData.window-y}";
+                            }
+                        }
+                    }
+                }
+
+                Rectangle {
+                    vertical-stretch: 1;
+                }
+            }
+            if root.section == 2: VerticalLayout {
+                spacing: 0px;
+                SettingsRow {
+                    label: "Focus";
+                    hint: "Pomodoro focus session · 1–180 minutes.";
+                    SettingsInput {
+                        label: "Focus minutes";
+                        value <=> SettingsDraft.focus-minutes;
+                        enabled: root.editable;
+                    }
+                }
+
+                SettingsRow {
+                    label: "Short break";
+                    hint: "Between focus sessions · 1–180 minutes.";
+                    SettingsInput {
+                        label: "Short break minutes";
+                        value <=> SettingsDraft.short-minutes;
+                        enabled: root.editable;
+                    }
+                }
+
+                SettingsRow {
+                    label: "Long break";
+                    hint: "Cancel an active Pomodoro before saving durations.";
+                    SettingsInput {
+                        label: "Long break minutes";
+                        value <=> SettingsDraft.long-minutes;
+                        enabled: root.editable;
+                    }
+                }
+            }
+        }
+
+        Text {
+            height: 18px * Metrics.scale;
+            text: root.status;
+            accessible-label: root.status;
+            overflow: elide;
+            color: SettingsData.error != "" || root.validation != "" ? Theme.error : Theme.muted;
+            font-family: Theme.font-family;
+            font-size: Theme.font-caption;
+            vertical-alignment: center;
+        }
+
+        HorizontalLayout {
+            height: 24px * Metrics.scale;
+            spacing: 6px * Metrics.scale;
+            SettingsButton {
+                label: "Restore defaults";
+                enabled: root.editable;
+                activated => {
+                    SettingsDraft.defaults();
+                    SettingsActions.restore-defaults();
+                }
+            }
+
+            Rectangle {
+                horizontal-stretch: 1;
+            }
+
+            SettingsButton {
+                label: "Save settings";
+                accent: true;
+                enabled: root.editable && root.validation == "" && (SettingsDraft.modified || SettingsData.error != "");
+                activated => {
+                    if root.editable && root.validation == "" && (SettingsDraft.modified || SettingsData.error != "") {
+                        SettingsActions.save(SettingsDraft.light-mode, SettingsDraft.reduce-motion,
+                            SettingsDraft.always-on-top, SettingsDraft.expanded,
+                            SettingsDraft.remember-position, round(SettingsDraft.window-x.to-float()),
+                            round(SettingsDraft.window-y.to-float()),
+                            round(SettingsDraft.focus-minutes.to-float()),
+                            round(SettingsDraft.short-minutes.to-float()),
+                            round(SettingsDraft.long-minutes.to-float()));
+                    }
+                }
+            }
+
+            SettingsButton {
+                label: "Exit Oryn";
+                quiet: true;
+                activated => { SettingsActions.exit(); }
+            }
+        }
+    }
+}

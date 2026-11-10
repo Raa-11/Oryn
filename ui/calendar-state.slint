@@ -1,0 +1,132 @@
+export enum CalendarFilter { today, upcoming, completed }
+
+export struct CalendarTask {
+    id: string,
+    title: string,
+    notes: string,
+    due-date: string,
+    completed: bool,
+    group-label: string,
+    group-start: bool,
+}
+
+export global CalendarData {
+    in property <[CalendarTask]> tasks;
+    in property <string> today;
+    in property <string> today-label;
+    in property <CalendarFilter> filter: CalendarFilter.today;
+    in property <bool> loaded: false;
+    in property <bool> busy: false;
+    in property <string> error;
+    in property <int> page: 0;
+    in property <bool> has-more: false;
+    in property <string> today-count: "0";
+    in property <string> revision: "0";
+}
+
+export global CalendarActions {
+    callback save(string, string, string, string);
+    callback set-completed(string, bool);
+    callback remove(string);
+    callback select-filter(CalendarFilter);
+    callback change-page(int);
+    callback refresh();
+}
+
+// A view-owned draft must outlive the conditionally instantiated Calendar screen.
+export global CalendarDraft {
+    in-out property <bool> open: false;
+    in-out property <string> id;
+    in-out property <string> title;
+    in-out property <string> notes;
+    in-out property <string> due-date;
+    in-out property <bool> completed: false;
+    in-out property <string> deleting-id;
+    in-out property <bool> notes-expanded: false;
+    out property <bool> has-title: self.title.replace-all(" ", "").replace-all("\u{9}", "").replace-all("\n", "").replace-all("\u{d}", "").replace-all("\u{b}", "").replace-all("\u{c}", "") != "";
+    private property <bool> awaiting-save: false;
+    private property <bool> awaiting-delete: false;
+    private property <bool> awaiting-status: false;
+    private property <string> submitted-revision;
+    private property <string> host-revision: CalendarData.revision;
+
+    changed host-revision => {
+        if self.awaiting-save && self.host-revision != self.submitted-revision {
+            self.open = false;
+            self.awaiting-save = false;
+        }
+        if self.awaiting-delete {
+            self.open = false;
+            self.awaiting-delete = false;
+        }
+        if self.awaiting-status {
+            self.completed = !self.completed;
+            self.awaiting-status = false;
+        }
+        self.deleting-id = "";
+    }
+
+    public function create() {
+        self.id = "";
+        self.title = "";
+        self.notes = "";
+        self.due-date = CalendarData.today;
+        self.completed = false;
+        self.awaiting-save = false;
+        self.awaiting-delete = false;
+        self.awaiting-status = false;
+        self.deleting-id = "";
+        self.notes-expanded = false;
+        self.open = true;
+    }
+
+    public function edit(task: CalendarTask) {
+        self.id = task.id;
+        self.title = task.title;
+        self.notes = task.notes;
+        self.due-date = task.due-date;
+        self.completed = task.completed;
+        self.awaiting-save = false;
+        self.awaiting-delete = false;
+        self.awaiting-status = false;
+        self.deleting-id = "";
+        self.notes-expanded = false;
+        self.open = true;
+    }
+
+    public function save() {
+        if CalendarData.loaded && !CalendarData.busy && self.has-title {
+            self.submitted-revision = CalendarData.revision;
+            self.awaiting-save = true;
+            self.awaiting-delete = false;
+            self.awaiting-status = false;
+            CalendarActions.save(self.id, self.title, self.notes, self.due-date);
+        }
+    }
+
+    public function remove() {
+        if CalendarData.loaded && !CalendarData.busy {
+            self.awaiting-delete = true;
+            self.awaiting-save = false;
+            self.awaiting-status = false;
+            CalendarActions.remove(self.id);
+        }
+    }
+
+    public function toggle-status() {
+        if CalendarData.loaded && !CalendarData.busy {
+            self.awaiting-status = true;
+            self.awaiting-save = false;
+            self.awaiting-delete = false;
+            CalendarActions.set-completed(self.id, !self.completed);
+        }
+    }
+
+    public function cancel() {
+        self.open = false;
+        self.awaiting-save = false;
+        self.awaiting-delete = false;
+        self.awaiting-status = false;
+        self.deleting-id = "";
+    }
+}

@@ -1,0 +1,83 @@
+import "assets/Inter.ttf";
+import { FloatingIsland } from "components/floating-island.slint";
+import { Metrics } from "themes/metrics.slint";
+import { Palette } from "std-widgets.slint";
+import { Theme } from "themes/theme.slint";
+import { SettingsData, SettingsDraft } from "settings-state.slint";
+import { CalendarDraft } from "calendar-state.slint";
+export { Theme, Palette }
+export { TimeData, TimeActions, TimerStatus } from "time-state.slint";
+export { SettingsData, SettingsActions } from "settings-state.slint";
+export {
+    CalendarData,
+    CalendarActions,
+    CalendarTask,
+    CalendarFilter,
+} from "calendar-state.slint";
+
+export component OrynWindow inherits Window {
+    in-out property <bool> expanded: true;
+    in-out property <bool> reduce-motion: SettingsData.loaded ? SettingsData.reduce-motion : false;
+    in-out property <string> active-page: "Home";
+    private property <ColorScheme> widget-color-scheme: Theme.color-scheme;
+    private property <bool> settings-loaded: SettingsData.loaded;
+    private property <bool> host-light-mode: SettingsData.light-mode;
+    out property <bool> settings-draft-modified: SettingsDraft.modified;
+    init => {
+        Palette.color-scheme = root.widget-color-scheme;
+        if SettingsData.loaded {
+            Theme.light-mode = SettingsData.light-mode;
+            SettingsDraft.load();
+        }
+    }
+    changed settings-loaded => {
+        if SettingsData.loaded {
+            Theme.light-mode = SettingsData.light-mode;
+            SettingsDraft.load();
+        }
+    }
+    changed host-light-mode => {
+        if SettingsData.loaded {
+            Theme.light-mode = SettingsData.light-mode;
+        }
+    }
+    changed widget-color-scheme => { Palette.color-scheme = root.widget-color-scheme; }
+
+    out property <length> panel-width: 544px * Metrics.scale;
+    out property <float> panel-design-height: active-page == "Calendar" ? (CalendarDraft.open ? 394 : 331) : 289;
+    changed panel-design-height => { root.shape-changed(); }
+    out property <float> reveal: expanded ? 1 : 0;
+
+    callback exit-requested();
+    callback shape-changed();
+    callback refresh-settings-draft();
+    refresh-settings-draft => { SettingsDraft.load(); }
+
+    title: "Oryn";
+    icon: @image-url("assets/oryn-icon.png");
+    width: panel-width;
+    // Collapse clips the expanded surface; changing Calendar views changes its design height.
+    height: panel-design-height * 1px * Metrics.scale;
+    default-font-family: Theme.font-family;
+    no-frame: true;
+    always-on-top: SettingsData.always-on-top;
+    background: transparent;
+
+    animate reveal {
+        duration: root.reduce-motion ? 0ms : 220ms;
+        easing: ease-in-out;
+    }
+
+    changed reveal => {
+        root.shape-changed();
+    }
+
+    FloatingIsland {
+        expanded <=> root.expanded;
+        reveal: root.reveal;
+        panel-design-height: root.panel-design-height;
+        reduce-motion <=> root.reduce-motion;
+        active-page <=> root.active-page;
+        exit-requested => { root.exit-requested(); }
+    }
+}
